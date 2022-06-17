@@ -1,0 +1,133 @@
+%{
+    #include "Utilities.hpp"
+    #include "RulesTypes.hpp"
+    #include "hw3_output.hpp"
+%}
+
+%token VOID
+%token INT
+%token BYTE
+%token B
+%token BOOL
+%token AUTO
+%token ID
+%token NUM
+%token STRING
+%token RETURN
+%token TRUE
+%token FALSE
+%token IF
+%token BREAK
+%token CONTINUE
+%token SC
+%token COMMA
+%token WHILE
+
+%left   ASSIGN
+%left   OR
+%left   AND
+%left   RELOP_EQUAL
+%left   RELOP_GLT
+%left   BINOP_ADD
+%left   BINOP_MUL
+%right  NOT
+%left   LBRACE
+%left   RBRACE
+%left   LPAREN
+%left   RPAREN
+%nonassoc ELSE
+
+%%
+//rules
+Program:    {openScope(); addPrintFunctions();}
+            Funcs
+;
+
+Funcs:      /*epsilon*/ /*{if (yychar != YYEOF) yyerror("not EOF");}*/
+            |FuncDecl Funcs
+;
+
+FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());}
+            LBRACE {openScope(); addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
+            Statements {closeScope();}
+            RBRACE
+;
+
+RetType:    Type                            {$$ = new RetTypeClass($1->getType());}
+            |VOID                           {$$ = new RetTypeClass("VOID"); }
+;
+Formals:	 /*epsilon*/                    {$$ = new FormalsClass();}
+			|FormalsList                    {$$ = new FormalsClass($1->getVecArgsType(),$1->getVecArgsID());}
+;
+
+FormalsList: FormalDecl                     {$$ = new FormalsListClass(); $$->addNewArg($1->getArgType(),$1->getArgID());}
+			|FormalDecl COMMA FormalsList   {$$ = new FormalsListClass($3->getVecArgsType(),$3->getVecArgsID()); $$->addNewArg($1->getArgType(),$1->getArgID());}
+;
+
+FormalDecl:	Type ID                         {$$ = new FormalDeclClass($1->getType(),$2->getId()); }
+;
+
+Statements:	Statement
+			|Statements Statement
+;
+
+Statement:	Type ID SC              {addVarNewEntry($2->getId(),$1->getType());}
+			|Type ID ASSIGN Exp SC  {checkIfAssignValidByType($1->getType(), $4->getType()); addVarNewEntry($2->getId(),$1->getType());}
+			|AUTO ID ASSIGN Exp SC 	{checkIfAutoAssignValid($4->getType()); addVarNewEntry($2->getId(),$4->getType());}
+			|ID ASSIGN Exp SC     	{checkIfAssignValidByType(getIdVarType($1->getId()), $3->getType());}//checks also if id already exists
+			|Call SC
+			|RETURN SC				{checkReturnType("VOID");}
+			|RETURN Exp SC			{checkReturnType($2->getType());}
+			|BREAK SC				{checkIfBreakValid();}
+			|CONTINUE SC			{checkIfContinueValid();}
+            |IF LPAREN Exp RPAREN {openScope(); checkIfBool($3->getType());} Statement {closeScope();} IfElse
+			|WHILE LPAREN Exp RPAREN {openScope(); checkIfBool($3->getType()); incWhileCounter();} Statement {closeScope(); decWhileCounter();}
+            |LBRACE {openScope();} Statements RBRACE {closeScope();}
+;
+IfElse:     /*epsilon*/ %prec ASSIGN
+            |ELSE {openScope();} Statement {closeScope();}
+;
+
+Call:		ID LPAREN ExpList RPAREN {std::string funcRetType = checkFuncCall($1->getId(), $3->getVecArgsType()); $$ = new CallClass(funcRetType); }
+			|ID LPAREN RPAREN {std::string funcRetType = checkFuncCall($1->getId()); $$ = new CallClass(funcRetType); }
+;
+
+ExpList:	Exp                     {$$ = new ExpListClass(); $$->addNewArgType($1->getType());}
+			|Exp COMMA ExpList      {$$ = new ExpListClass($3->getVecArgsType()); $$->addNewArgType($1->getType());}
+;
+
+Type:	    INT   {$$ = new TypeClass("INT");}
+    		|BYTE {$$ = new TypeClass("BYTE");}
+    		|BOOL {$$ = new TypeClass("BOOL");}
+;
+
+Exp: 	    ID                      {$$ = new ExpClass(getIdVarType($1->getId()));}//checks also if id already exists
+    		|Call                   {$$ = new ExpClass($1->getType());}
+    		|NUM                    {$$ = new ExpClass("INT",$1->getValue());}
+    		|NUM B                  {checkIfBValid($1->getValue());  $$ = new ExpClass("BYTE",$1->getValue());}
+    		|STRING                 {$$ = new ExpClass("STRING");}
+    		|TRUE                   {$$ = new ExpClass("BOOL");}
+    		|FALSE                  {$$ = new ExpClass("BOOL");}
+    		|NOT Exp                {checkIfBool($2->getType()); $$ = new ExpClass("BOOL");}
+    		|Exp OR Exp             {checkIfBool($1->getType()); checkIfBool($3->getType()); $$ = new ExpClass("BOOL");}
+    		|Exp AND Exp            {checkIfBool($1->getType()); checkIfBool($3->getType()); $$ = new ExpClass("BOOL");}
+    		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
+            |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
+            |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType()); $$ = new ExpClass(newType);}
+            |Exp BINOP_MUL Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType()); $$ = new ExpClass(newType);}
+    		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType()); checkIfNumeric($4->getType()); $$ = new ExpClass($2->getType());}
+            |LPAREN Exp RPAREN      {$$ = new ExpClass($2->getType(),$2->getValue());}
+;
+%%
+
+void yyerror(const char* input) {
+    output::errorSyn(yylineno);
+    exit(0);
+}
+
+int main() {
+    int retVal = yyparse();
+    checkMainExist();
+    closeScope();
+    return retVal;
+}
