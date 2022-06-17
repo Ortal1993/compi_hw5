@@ -113,7 +113,8 @@ Exp: 	    ID                      {$$ = new ExpClass(getIdVarType($1->getId()));
     		|Exp AND Exp            {checkIfBool($1->getType()); checkIfBool($3->getType()); $$ = new ExpClass("BOOL");}
     		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
             |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
-            |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType()); $$ = new ExpClass(newType);}
+            |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
+             $$ = new ExpClass(newType, std::string(""), $1, $3, $2);}
             |Exp BINOP_MUL Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType()); $$ = new ExpClass(newType);}
     		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType()); checkIfNumeric($4->getType()); $$ = new ExpClass($2->getType());}
             |LPAREN Exp RPAREN      {$$ = new ExpClass($2->getType(),$2->getValue());}
