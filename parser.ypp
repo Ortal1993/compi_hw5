@@ -101,23 +101,35 @@ Type:	    INT   {$$ = new TypeClass("INT");}
     		|BOOL {$$ = new TypeClass("BOOL");}
 ;
 
-Exp: 	    ID                      {$$ = new ExpClass(getIdVarType($1->getId()));}//checks also if id already exists
-    		|Call                   {$$ = new ExpClass($1->getType());}
+Exp: 	    ID                      {$$ = new ExpClass(getIdVarType($1->getId()), $1->getValue());}//checks also if id already exists
+    		|Call                   {$$ = new ExpClass($1->getType(), $1->getId());}
     		|NUM                    {$$ = new ExpClass("INT",$1->getValue());}
-    		|NUM B                  {checkIfBValid($1->getValue());  $$ = new ExpClass("BYTE",$1->getValue());}
-    		|STRING                 {$$ = new ExpClass("STRING");}
-    		|TRUE                   {$$ = new ExpClass("BOOL");}
-    		|FALSE                  {$$ = new ExpClass("BOOL");}
-    		|NOT Exp                {checkIfBool($2->getType()); $$ = new ExpClass("BOOL");}
-    		|Exp OR Exp             {checkIfBool($1->getType()); checkIfBool($3->getType()); $$ = new ExpClass("BOOL");}
-    		|Exp AND Exp            {checkIfBool($1->getType()); checkIfBool($3->getType()); $$ = new ExpClass("BOOL");}
-    		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
-            |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType()); checkIfNumeric($3->getType()); $$ = new ExpClass("BOOL");}
+    		|NUM B                  {checkIfBValid($1->getValue());
+    		                        $$ = new ExpClass("BYTE",$1->getValue());}
+    		|STRING                 {$$ = new ExpClass("STRING", $1->getValue());}
+    		|TRUE                   {$$ = new ExpClass("BOOL", $1->getValue());}
+    		|FALSE                  {$$ = new ExpClass("BOOL", $1->getValue());}
+    		|NOT Exp                {checkIfBool($2->getType());
+    		                        $$ = new ExpClass("BOOL", $1->getValue(), $2);}
+    		|Exp OR Exp             {checkIfBool($1->getType());
+    		                        checkIfBool($3->getType());
+    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+    		|Exp AND Exp            {checkIfBool($1->getType());
+    		                        checkIfBool($3->getType());
+    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+    		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType());
+    		                        checkIfNumeric($3->getType());
+    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+            |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType());
+                                    checkIfNumeric($3->getType());
+                                    $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
             |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(newType, std::string(""), $1, $3, $2);}
+                                     $$ = new ExpClass(newType, std::string(""), $2, $1, $3);} ///why ""?
             |Exp BINOP_MUL Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(newType, std::string(""), $1, $3, $2);}
-    		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType()); checkIfNumeric($4->getType()); $$ = new ExpClass($2->getType());}
+                                     $$ = new ExpClass(newType, std::string(""), $2, $1, $3);} ///why ""?
+    		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType());
+    		                        checkIfNumeric($4->getType());
+    		                        $$ = new ExpClass($2->getType(), $4->getValue());}
             |LPAREN Exp RPAREN      {$$ = new ExpClass($2->getType(),$2->getValue());}
 ;
 %%
