@@ -1,5 +1,5 @@
-#ifndef HW5_REGISTER_H
-#define HW5_REGISTER_H
+#ifndef HW5_REGISTER_HPP
+#define HW5_REGISTER_HPP
 
 #include <iostream>
 #include <string>
@@ -16,4 +16,4 @@ public:
 };
 
 
-#endif //HW5_REGISTER_H
+#endif //HW5_REGISTER_HPP

@@ -1,4 +1,4 @@
-#include "Register.h"
+#include "Register.hpp"
 
 int Register::counter = 0;
 
