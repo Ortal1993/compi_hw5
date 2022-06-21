@@ -38,9 +38,9 @@ continue                    return CONTINUE;
 \<|\>|\<\=|\>\=             yylval = new OpClass(yytext); return RELOP_GLT;
 [\+|\-]                     yylval = new OpClass(yytext); return BINOP_ADD;
 [\*|\/]                     yylval = new OpClass(yytext); return BINOP_MUL;
-[a-zA-Z][a-zA-Z0-9]*        yylval = new IDClass(yytext); return ID;
+[a-zA-Z][a-zA-Z0-9]*        yylval = new IDClass(yytext, yylineno); return ID;
 0|[1-9][0-9]*               yylval = new NUMClass(yytext); return NUM;
-\"([^\n\r\"\\]|\\[rnt"\\])+\" return STRING;
+\"([^\n\r\"\\]|\\[rnt"\\])+\" yylval = new StringClass(yytext); return STRING;
 
 \/\/[^\r\n]*[\r|\n|\r\n]?   ;
 {whitespace}                ;

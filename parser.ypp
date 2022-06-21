@@ -44,7 +44,7 @@ Program:    {openScope();
             Funcs
 ;
 
-Funcs:      /*epsilon*/ /*{if (yychar != YYEOF) yyerror("not EOF");}*/
+Funcs:      /*epsilon*/
             |FuncDecl Funcs
 ;
 
@@ -76,11 +76,11 @@ Statements:	Statement
 			|Statements Statement
 ;
 
-Statement:	Type ID SC              {addVarNewEntry($2->getId(), $2->getValue(), $1->getType());}
+Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());}
 			|Type ID ASSIGN Exp SC  {checkIfAssignValidByType($1->getType(), $4->getType());
-			                        addVarNewEntry($2->getId(),$1->getType());}
+			                        addVarNewEntry($2->getId(), $1->getType(), $4->getValue());}
 			|AUTO ID ASSIGN Exp SC 	{checkIfAutoAssignValid($4->getType());
-			                        addVarNewEntry($2->getId(),$4->getType());}
+			                        addVarNewEntry($2->getId(),$4->getType(), $4->getValue());}
 			|ID ASSIGN Exp SC     	{checkIfAssignValidByType(getIdVarType($1->getId()), $3->getType());}//checks also if id already exists
 			|Call SC
 			|RETURN SC				{checkReturnType("VOID");}
@@ -89,7 +89,8 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $2->getValue(), 
 			|CONTINUE SC			{checkIfContinueValid();}
             |IF LPAREN Exp RPAREN   {openScope();
                                      checkIfBool($3->getType());}
-                        Statement   {closeScope();} IfElse
+                      M Statement   {closeScope();}
+                      IfElse
 			|WHILE LPAREN Exp RPAREN {openScope();
 			                          checkIfBool($3->getType());
 			                          incWhileCounter();}
@@ -99,13 +100,13 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $2->getValue(), 
              Statements RBRACE       {closeScope();}
 ;
 IfElse:     /*epsilon*/ %prec ASSIGN
-            |ELSE {openScope();} Statement {closeScope();}
+            |ELSE {openScope();} N M Statement {closeScope();}
 ;
 
 Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->getId(), $3->getVecArgsType());
-                                      $$ = new CallClass(funcRetType); }
+                                      $$ = new CallClass(funcRetType, $1->getId()); }
 			|ID LPAREN RPAREN         {std::string funcRetType = checkFuncCall($1->getId());
-			                          $$ = new CallClass(funcRetType); }
+			                          $$ = new CallClass(funcRetType, $1->getId()); }
 ;
 
 ExpList:	Exp                     {$$ = new ExpListClass();
@@ -119,36 +120,37 @@ Type:	    INT                     {$$ = new TypeClass("INT");}
     		|BOOL                   {$$ = new TypeClass("BOOL");}
 ;
 
-Exp: 	    ID                      {$$ = new ExpClass(getIdVarType($1->getId()), $1->getValue(), EXP_OP_ID);}//checks also if id already exists
-    		|Call                   {$$ = new ExpClass($1->getType(), $1->getId(), EXP_OP_CALL);}
-    		|NUM                    {$$ = new ExpClass("INT",$1->getValue(), EXP_OP_NUM);}
+Exp: 	    ID                      {std::string type = getTypeById($1->getId());
+                                    $$ = new ExpClass(EXP_OP_ID, type);}
+    		|Call                   {$$ = new ExpClass(EXP_OP_CALL, $1->getType());} /*value of func is id??*/
+    		|NUM                    {$$ = new ExpClass(EXP_OP_NUM, "INT", $1->getValue());}
     		|NUM B                  {checkIfBValid($1->getValue());
-    		                        $$ = new ExpClass("BYTE",$1->getValue());}
-    		|STRING                 {$$ = new ExpClass("STRING", $1->getValue());}
-    		|TRUE                   {$$ = new ExpClass("BOOL", $1->getValue());}
-    		|FALSE                  {$$ = new ExpClass("BOOL", $1->getValue());}
+    		                        $$ = new ExpClass(EXP_OP_NUM_B, "BYTE", $1->getValue());}
+    		|STRING                 {$$ = new ExpClass(EXP_OP_STRING, "STRING"/*, $1->getValue()*/);}
+    		|TRUE                   {$$ = new ExpClass(EXP_OP_TRUE, "BOOL");}
+    		|FALSE                  {$$ = new ExpClass(EXP_OP_FALSE, "BOOL"));}
     		|NOT Exp                {checkIfBool($2->getType());
-    		                        $$ = new ExpClass("BOOL", $1->getValue(), $2);}
-    		|Exp OR M Exp             {checkIfBool($1->getType());
+    		                        $$ = new ExpClass(EXP_OP_NOT, "BOOL", std::string(""), $2);} /*the std::string("") is only for compatability with ExpClass*/
+    		|Exp OR M Exp           {checkIfBool($1->getType());
     		                        checkIfBool($3->getType());
-    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
-    		|Exp AND M Exp            {checkIfBool($1->getType());
+    		                        $$ = new ExpClass(EXP_OP_OR, "BOOL", std::string(""), $1, $4, $3);} ///why ""?
+    		|Exp AND M Exp          {checkIfBool($1->getType());
     		                        checkIfBool($3->getType());
-    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+    		                        $$ = new ExpClass(EXP_OP_AND, "BOOL", std::string(""), $1, $4, $3);} ///why ""?
     		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType());
     		                        checkIfNumeric($3->getType());
-    		                        $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+    		                        $$ = new ExpClass(EXP_OP_EQUAL, "BOOL", std::string(""), $1, $3, $2);} ///why ""?
             |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType());
                                     checkIfNumeric($3->getType());
-                                    $$ = new ExpClass("BOOL", std::string(""), $2, $1, $3);} ///why ""?
+                                    $$ = new ExpClass(EXP_OP_GLT, "BOOL", std::string(""), $1, $3, $2);} ///why ""?
             |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(newType, std::string(""), $2, $1, $3);} ///why ""?
+                                     $$ = new ExpClass(EXP_OP_ADD, newType, std::string(""), $1, $3, $2);} ///why ""?
             |Exp BINOP_MUL Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(newType, std::string(""), $2, $1, $3);} ///why ""?
+                                     $$ = new ExpClass(EXP_OP_MUL, newType, std::string(""), $1, $3, $2);} ///why ""?
     		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType());
     		                        checkIfNumeric($4->getType());
-    		                        $$ = new ExpClass($2->getType(), $4->getValue());}
-            |LPAREN Exp RPAREN      {$$ = new ExpClass($2->getType(),$2->getValue());}
+    		                        $$ = new ExpClass(EXP_OP_CAST, $2->getType(), $4->getValue());}
+            |LPAREN Exp RPAREN      {$$ = new ExpClass(EXP_OP_L_EXP_R, $2->getType(), $2->getValue(), $2);}
 ;
 
 M									{$$ = new M_Class();}
