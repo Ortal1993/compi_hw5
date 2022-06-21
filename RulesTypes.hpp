@@ -41,7 +41,7 @@ public:
     virtual int getQuad() {std::cout << "error with getQuad()!" << std::endl;}
     virtual std::string getLabel() {std::cout << "error with getLabel()!" << std::endl;}
     virtual void addNewArgType(std::string argType) {std::cout << "error with addNewArgType()!" << std::endl;}
-    virtual std::string getReg() {std::cout << "error with getReg()!" << std::endl;}
+    virtual std::string getRegName() {std::cout << "error with getReg()!" << std::endl;}
     virtual std::string getOpStr() {std::cout << "error with getOp()!" << std::endl;}
     virtual OP_TYPE getOpType() {std::cout << "error with ConvertOpToEnum()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getTruelist() {std::cout << "error with getTruelist()!" << std::endl;}
@@ -147,7 +147,7 @@ public:
     ~ExpClass() = default;
     std::string getType() override;
     std::string getValue() override;
-    std::string getReg() override;
+    std::string getRegName() override;
     vector<pair<int,BranchLabelIndex>> getTruelist() override;
     vector<pair<int,BranchLabelIndex>> getFalselist() override;
 
@@ -170,7 +170,7 @@ private:
 public:
     StatementClass();
     ~StatementClass() = default;
-    vector<pair<int,BranchLabelIndex>> getNextlist();
+    vector<pair<int,BranchLabelIndex>> getNextlist() override;
 
 };
 

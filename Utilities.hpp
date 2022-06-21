@@ -30,5 +30,6 @@ std::string checkFuncCall(std::string funcId, std::vector<std::string> vecGivenA
 void checkMainExist();
 void addPrintFunctions();
 void printScope();
+std::string getSizeByType(std::string type);
 
 #endif //_UTILITIES_

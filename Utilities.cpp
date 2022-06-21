@@ -247,6 +247,17 @@ void printScope() {
     }
 }
 
+std::string getSizeByType(std::string type){
+    if(type == "INT"){
+        return "i32";
+    }else if(type == "BYTE"){
+        return "i8";
+    }else if(type == "BOOL"){
+        return "i1";
+    }
+    ///void???
+}
+
 
 
 
