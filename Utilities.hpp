@@ -31,5 +31,5 @@ void checkMainExist();
 void addPrintFunctions();
 void printScope();
 std::string getSizeByType(std::string type);
-
+std::string getValueById(std::string id);
 #endif //_UTILITIES_

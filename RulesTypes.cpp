@@ -46,17 +46,15 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
     std::string opStr = opExp->getOpStr();///For relop and binary
     switch (opType) {
         case EXP_OP_ID:{
-            if(!value.empty()){
 
-            }
-            break;
+        //initial
+
+        break;
         }
         case EXP_OP_CALL:
         {
             break;
-
         }
-
         case EXP_OP_NUM:
         {
             break;

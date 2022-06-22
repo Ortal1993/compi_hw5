@@ -121,7 +121,7 @@ Type:	    INT                     {$$ = new TypeClass("INT");}
 ;
 
 Exp: 	    ID                      {std::string type = getTypeById($1->getId());
-                                    $$ = new ExpClass(EXP_OP_ID, type);}
+                                    $$ = new ExpClass(EXP_OP_ID, type, std::string(""), $1);}
     		|Call                   {$$ = new ExpClass(EXP_OP_CALL, $1->getType());} /*value of func is id??*/
     		|NUM                    {$$ = new ExpClass(EXP_OP_NUM, "INT", $1->getValue());}
     		|NUM B                  {checkIfBValid($1->getValue());
