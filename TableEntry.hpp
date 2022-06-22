@@ -9,12 +9,10 @@ private:
     std::string id;
     int offset;
     std::string type;
-    std::string value;
     bool isFunc;
     std::vector<std::string> argsTypes;
 public:
-    TableEntry(std::string id, int offset, std::string type,
-               std::string value = std::string(), bool isFunc = false,
+    TableEntry(std::string id, int offset, std::string type, bool isFunc = false,
                std::vector<std::string> argsTypes = std::vector<std::string>());
     ~TableEntry() = default;
     std::string& getId();

@@ -81,7 +81,6 @@ public:
 class StringClass : public BaseClass {
 private:
     std::string value;
-    //int quad?
 public:
     StringClass(std::string value);
     ~StringClass() = default;
@@ -177,12 +176,14 @@ public:
 class CallClass : public BaseClass {
 private:
     std::string type;
-    //std::string id;
+    std::string id;
+    Register reg;
 public:
-    CallClass(std::string type);
+    CallClass(std::string type, std::string id);
     ~CallClass() = default;
     std::string getType() override;
-    //std::string getId() override;
+    std::string getId() override;
+    std::string getRegName() override;
 };
 
 class OpClass : public BaseClass {

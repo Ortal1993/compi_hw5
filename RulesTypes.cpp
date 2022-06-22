@@ -45,25 +45,83 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
     std::string code;
     std::string opStr = opExp->getOpStr();///For relop and binary
     switch (opType) {
-        case EXP_OP_ID:{
-
-        //initial
-
+        case EXP_OP_ID:
+        {
+            //gets the offset of var. will help us ID value it in stack.
+            TableEntry* idEntry = symbolTable.findEntryInTable(exp1->getId()); //do we need to check if not null?
+            int idOffset = idEntry->get_offset();
+            std::string idOffsetStr = std::to_string(idOffset);
+            ///TODO - need to distinguish between local variables and function arguments case
+            //all vars are saved in the stack in size i32, as said in PDF and recommended in PIAZZA
+            Register addrReg; //will hold the pointer of the value in the stack
+            //need to create pointer for the stack, and special register to save it (stack location register).
+            code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+            codeBuffer.emit(code);
+            //now we need to load the value to the register we now work with.
+            //there are 2 cases - if the var we work on is not INT, we need to trunc the size first.
+            Register valueReg; //temporary register to save value. if not boolean, will be stored in exp reg.
+            if(type != "INT") {
+                Register tempReg;
+                codeBuffer.emit(tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                codeBuffer.emit(valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
+            }
+            else { //can't put in exp reg if the value is boolean!!! not allowed! need to create jump
+                codeBuffer.emit(valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+            }
+            //do we need to makelist here? if so - by what? only if its boolean?
+            if (type == "BOOL") {
+                Register tempReg;
+                code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"); //checking if value is truelist
+                codeBuffer.emit(code);
+                code = "br i1 " + tempReg.getRegName() + ", label @, label @";
+                int bufferLocation = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
+                this->truelist = codeBuffer.makelist(ifTrue);
+                this->falselist = codeBuffer.makelist(ifFalse);
+            }
+            else {
+                codeBuffer.emit(reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
+            }
         break;
         }
         case EXP_OP_CALL:
         {
+            if (type == "BOOL") {
+                Register tempReg;
+                code = tempReg.getRegName() + " = icmp eq i1 " + exp1->getRegName() + ", 1"); //checking if value is truelist
+                codeBuffer.emit(code);
+                code = "br i1 " + tempReg.getRegName() + ", label @, label @";
+                int bufferLocation = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
+                this->truelist = codeBuffer.makelist(ifTrue);
+                this->falselist = codeBuffer.makelist(ifFalse);
+            }
+            else {
+                //exp_reg = add call_reg, 0;
+                code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
+                codeBuffer.emit(code);
+            }
             break;
         }
         case EXP_OP_NUM:
         {
+            //it this case, type is always "INT"
+            code = reg.getRegNaem() + " = add " + getSizeByType(type) + " " + value + ", 0";
+            codeBuffer.emit(code);
             break;
         }
         case EXP_OP_NUM_B:
         {
+            //it this case, type is always "BYTE"
+            code = reg.getRegNaem() + " = add " + getSizeByType(type) + " " + value + ", 0";
+            codeBuffer.emit(code);
             break;
         }
-        case EXP_OP_STRING:{
+        case EXP_OP_STRING:
+        {
+            //codeBuffer.emitGlobal() --> STOPPED HERE
             break;
         }
         case EXP_OP_TRUE:
@@ -263,9 +321,10 @@ void ExpListClass::addNewArgType(std::string argType) {
 StatementClass::StatementClass() : nextlist(vector<pair<int,BranchLabelIndex>>()){}
 vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist() {return nextlist;}
 
-CallClass::CallClass(std::string type) : type(type) {}
+CallClass::CallClass(std::string type, std::string id) : type(type), id(id), reg(Register()) {}
 std::string CallClass::getType() {return type;}
-//std::string CallClass::getId() {return id;}
+std::string CallClass::getId() {return id;}
+std::string CallClass::getRegName() {return reg.getRegName();}
 
 OpClass::OpClass(std::string opStr) : opStr(opStr){}
 std::string OpClass::getOpStr() {return opStr;}
