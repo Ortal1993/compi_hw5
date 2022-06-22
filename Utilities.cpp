@@ -258,13 +258,6 @@ std::string getSizeByType(std::string type){
     ///void???
 }
 
-std::string getValueById(std::string id){
-    TableEntry* entry = symbolTable.findEntryInTable(id);
-    if(entry != nullptr){
-        return entry->getValue();
-    }
-}
-
 
 
 //test

@@ -6,6 +6,7 @@
 #include <iostream>
 
 CodeBuffer& codeBuffer = CodeBuffer::instance();
+StackScopeRegister stackRegister;
 
 void checkIfBValid(std::string value);
 void checkIfBool(std::string type);
@@ -31,5 +32,4 @@ void checkMainExist();
 void addPrintFunctions();
 void printScope();
 std::string getSizeByType(std::string type);
-std::string getValueById(std::string id);
 #endif //_UTILITIES_
