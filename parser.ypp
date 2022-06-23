@@ -77,18 +77,18 @@ Statements:	Statement               {$$ = new StatementClass();}
 ;
 
 Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
-                                    $$ = new StatementClass(STATEMENT_ID)}
+                                    $$ = new StatementClass(STATEMENT_ID, $1);}
 			|Type ID ASSIGN Exp SC  {checkIfAssignValidByType($1->getType(), $4->getType());
 			                        addVarNewEntry($2->getId(), $1->getType(), $4->getValue());
-			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP)}
+			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP, $2, $4);}
 			|AUTO ID ASSIGN Exp SC 	{checkIfAutoAssignValid($4->getType());
 			                        addVarNewEntry($2->getId(),$4->getType(), $4->getValue());
-			                        $$ = new StatementClass(STATEMENT_AUTO_ID_ASS_EXP)}
+			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP, $2, $4);} //WORKS LIKE STATEMENT_TYPE_ID_ASS_EXP
 			|ID ASSIGN Exp SC     	{checkIfAssignValidByType(getIdVarType($1->getId()), $3->getType());
-			                        $$ = new StatementClass(STATEMENT_ID_ASS_EXP);}
-			|Call SC                {$$ = new StatementClass(STATMENT_CALL);}
+			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP, $1, $3);} //WORKS LIKE STATEMENT_TYPE_ID_ASS_EXP
+			|Call SC                {$$ = new StatementClass(STATEMENT_CALL);}
 			|RETURN SC				{checkReturnType("VOID");
-			                        $$ = new StatementClass(STATEMENT_RET);}
+			                        $$ = new StatementClass(STATEMENT_RET);} //IN THIS CASE RET VOID. NO NEED TO DO ANYTHING...
 			|RETURN Exp SC			{checkReturnType($2->getType());
 			                        $$ = new StatementClass(STATEMENT_RET_EXP);}
 			|BREAK SC				{checkIfBreakValid();
@@ -139,7 +139,7 @@ Exp: 	    ID                      {std::string type = getTypeById($1->getId());
     		|NUM                    {$$ = new ExpClass(EXP_OP_NUM, "INT", $1->getValue());}
     		|NUM B                  {checkIfBValid($1->getValue());
     		                        $$ = new ExpClass(EXP_OP_NUM_B, "BYTE", $1->getValue());}
-    		|STRING                 {$$ = new ExpClass(EXP_OP_STRING, "STRING"/*, $1->getValue()*/);}
+    		|STRING                 {$$ = new ExpClass(EXP_OP_STRING, "STRING", std::string(""), $1);}
     		|TRUE                   {$$ = new ExpClass(EXP_OP_TRUE, "BOOL");}
     		|FALSE                  {$$ = new ExpClass(EXP_OP_FALSE, "BOOL"));}
     		|NOT Exp                {checkIfBool($2->getType());

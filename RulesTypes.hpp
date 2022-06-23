@@ -43,6 +43,11 @@ enum STATEMENT_TYPE{
     STATEMENT_L_STATS_R
 };
 
+enum CALL_TYPE {
+    CALL_ID,
+    CALL_ID_EXPLIST
+};
+
 class BaseClass {
 public:
     virtual ~BaseClass() = default;
@@ -96,11 +101,13 @@ public:
 
 class StringClass : public BaseClass {
 private:
+    StringRegister strReg;
     std::string value;
 public:
     StringClass(std::string value);
     ~StringClass() = default;
     std::string getValue() override;
+    std::string getRegName() override;
 };
 
 class NUMClass : public BaseClass {
@@ -183,21 +190,20 @@ private:
     STATEMENT_TYPE stType;
     vector<pair<int,BranchLabelIndex>> nextlist;
 public:
-    StatementClass(STATEMENT_TYPE stsType);
+    StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
 };
 
 class CallClass : public BaseClass {
 private:
+    CALL_TYPE callType;
     std::string type;
-    std::string id;
     Register reg;
 public:
-    CallClass(std::string type, std::string id);
+    CallClass(CALL_TYPE callType,std::string type, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
     ~CallClass() = default;
     std::string getType() override;
-    std::string getId() override;
     std::string getRegName() override;
 };
 

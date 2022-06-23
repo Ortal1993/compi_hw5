@@ -13,8 +13,13 @@ IDClass::IDClass(std::string id, int quad) : id(id), quad(quad) {}
 std::string IDClass::getId() {return id;}
 int IDClass::getQuad() {return quad;}
 
-StringClass::StringClass(std::string value) : value(value) {}
+StringClass::StringClass(std::string value) : strReg(StringRegister()), value(value) {
+     //std::string str2 = str.substr (3,5);
+     value = value.substr(1, value.size()-2);
+}
 std::string StringClass::getValue() {return value;}
+
+std::string StringClass::getRegName() {return strReg.getName();}
 
 NUMClass::NUMClass(std::string value) : value(value) {}
 std::string NUMClass::getValue() {return value;}
@@ -51,9 +56,9 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             ///TODO - need to distinguish between local variables and function arguments case (in call?)
             int idOffset = getOffsetById(exp1->getId());
             if(idOffset < 0){
-
+                //argument case
             }else{
-
+                //local var case
             }
             std::string idOffsetStr = to_string(idOffset);
             //all vars are saved in the stack in size i32, as said in PDF and recommended in PIAZZA
@@ -125,7 +130,9 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         }
         case EXP_OP_STRING:
         {
-            //codeBuffer.emitGlobal() --> STOPPED HERE
+            std::string sizeStr =  std::to_string(exp1->getValue().size());
+            code = exp1->getRegName() + " = internal constant [" + sizeStr + " x i8] c\"" + exp1->getValue() + "\\00\"" ;
+            codeBuffer.emitGlobal(code);
             break;
         }
         case EXP_OP_TRUE:
@@ -322,25 +329,51 @@ void ExpListClass::addNewArgType(std::string argType) {
     vecArgsType.push_back(argType);
 }
 
-StatementClass::StatementClass(STATEMENT_TYPE stType) : stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>()){
+StatementClass::StatementClass(STATEMENT_TYPE stType, BaseClass* exp1, BaseClass* exp2) :
+                                stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>())
+{
+
     std::string code;
     switch (stType) {
         case STATEMENT_ID:
         {
+            int idOffset = getOffsetById(exp1->getId());
+            std::string idOffsetStr = to_string(idOffset);
+            Register addrReg;
+            code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+            codeBuffer.emit(code);
+            code = "store i32 0, i32* " + addrReg.getRegName();
             break;
         }
         case STATEMENT_TYPE_ID_ASS_EXP:
         {
+            int idOffset = getOffsetById(exp1->getId());
+            std::string idOffsetStr = to_string(idOffset);
+            Register addrReg;
+            code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+            codeBuffer.emit(code);
+            std::string type = exp2->getType();
+            if (type != "INT") {
+                Register tempReg;
+                code = tempReg.getRegName() + " = zext " + getSizeByType(type) + " " + exp2->getRegName() + " to i32";
+                codeBuffer.emit(code);
+                code = "store i32 " + tempReg.getRegName() + ", i32* " + addrReg.getRegName();
+                codeBuffer.emit(code);
+            }
+            else {
+                code = "store i32 " + exp2->getRegName() + ", i32* " + addrReg.getRegName();
+                codeBuffer.emit(code);
+            }
             break;
-
         }
         case STATEMENT_AUTO_ID_ASS_EXP:
         {
+            //practically the same as STATEMENT_TYPE_ID_ASS_EXP
             break;
-
         }
         case STATEMENT_ID_ASS_EXP:
         {
+            //practically the same as STATEMENT_TYPE_ID_ASS_EXP
             break;
 
         }
@@ -389,15 +422,44 @@ StatementClass::StatementClass(STATEMENT_TYPE stType) : stType(stType), nextlist
             break;
 
         }
+        default:
+        {
+            std::cerr << "STATEMENT_TYPE ERROR!" << std::endl;
+        }
     }
 
 }
 vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist(){return nextlist;}
 
 
-CallClass::CallClass(std::string type, std::string id) : type(type), id(id), reg(Register()) {}
+CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) : callType(callType), type(type), reg(Register())
+{
+    std::string code;
+    switch (callType) {
+        case CALL_ID: //the ID here is the func name
+        {
+            //in this case, we simply call the func and we don't wait for any ret value
+            if (type == "VOID") {
+                code = "call " + getSizeByType(type) + " @" + exp1->getId() + "()";
+                codeBuffer.emit(code);
+            }
+            //in this case, we do wait for a ret value. Call will save it for EXP later
+            else {
+                code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "()";
+                codeBuffer.emit(code);
+            }
+            break;
+        }
+        case CALL_ID_EXPLIST:
+        {
+           //TODO
+           break;
+        }
+        default:
+            std::cerr << "CALL_TYPE ERROR!" << std::endl;
+        }
+}
 std::string CallClass::getType() {return type;}
-std::string CallClass::getId() {return id;}
 std::string CallClass::getRegName() {return reg.getRegName();}
 
 OpClass::OpClass(std::string opStr) : opStr(opStr){}

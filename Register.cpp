@@ -26,5 +26,25 @@ std::string StackScopeRegister::getRegName() {
 
 void StackScopeRegister::setNewRegName() {
     this->regName = "%stackPtr_" + std::to_string(this->counter);
+    incCounter();
+}
+
+void StackScopeRegister::incCounter() {
     this->counter++;
+}
+
+
+int StringRegister::counter = 0;
+
+StringRegister::StringRegister(){
+    this->regName = "@str_" + std::to_string(this->counter);
+    incCounter();
+}
+
+void StringRegister::incCounter() {
+    this->counter++;
+}
+
+std::string StringRegister::getRegName() {
+    return this->regName;
 }
