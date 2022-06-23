@@ -49,7 +49,7 @@ Funcs:      /*epsilon*/
 ;
 
 FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());}
-                                      LBRACE  {openScope();
+                                      LBRACE  {openScope();///MAYBE WE NEED TO BE ABLE TO OPEN SCOPE IN SIZE OF 50+SIZE OF ARGS
                                                addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
             Statements {closeScope();}
             RBRACE
@@ -72,35 +72,48 @@ FormalsList: FormalDecl                     {$$ = new FormalsListClass();
 FormalDecl:	Type ID                         {$$ = new FormalDeclClass($1->getType(),$2->getId()); }
 ;
 
-Statements:	Statement
-			|Statements Statement
+Statements:	Statement               {$$ = new StatementClass();}
+			|Statements Statement   {$$ = new StatementsClass($2->getNextlist()}
 ;
 
-Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());}
+Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
+                                    $$ = new StatementClass(STATEMENT_ID)}
 			|Type ID ASSIGN Exp SC  {checkIfAssignValidByType($1->getType(), $4->getType());
-			                        addVarNewEntry($2->getId(), $1->getType(), $4->getValue());}
+			                        addVarNewEntry($2->getId(), $1->getType(), $4->getValue());
+			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP)}
 			|AUTO ID ASSIGN Exp SC 	{checkIfAutoAssignValid($4->getType());
-			                        addVarNewEntry($2->getId(),$4->getType(), $4->getValue());}
-			|ID ASSIGN Exp SC     	{checkIfAssignValidByType(getIdVarType($1->getId()), $3->getType());}//checks also if id already exists
-			|Call SC
-			|RETURN SC				{checkReturnType("VOID");}
-			|RETURN Exp SC			{checkReturnType($2->getType());}
-			|BREAK SC				{checkIfBreakValid();}
-			|CONTINUE SC			{checkIfContinueValid();}
+			                        addVarNewEntry($2->getId(),$4->getType(), $4->getValue());
+			                        $$ = new StatementClass(STATEMENT_AUTO_ID_ASS_EXP)}
+			|ID ASSIGN Exp SC     	{checkIfAssignValidByType(getIdVarType($1->getId()), $3->getType());
+			                        $$ = new StatementClass(STATEMENT_ID_ASS_EXP);}
+			|Call SC                {$$ = new StatementClass(STATMENT_CALL);}
+			|RETURN SC				{checkReturnType("VOID");
+			                        $$ = new StatementClass(STATEMENT_RET);}
+			|RETURN Exp SC			{checkReturnType($2->getType());
+			                        $$ = new StatementClass(STATEMENT_RET_EXP);}
+			|BREAK SC				{checkIfBreakValid();
+			                        $$ = new StatementClass(STATEMENT_BR);}
+			|CONTINUE SC			{checkIfContinueValid();
+			                        $$ = new StatementClass(STATEMENT_CON);}
             |IF LPAREN Exp RPAREN   {openScope();
                                      checkIfBool($3->getType());}
-                      M Statement   {closeScope();}
+                      M Statement   {closeScope();
+                                    $$ = new StatementClass(STATEMENT_IF);}
                       IfElse
-			|WHILE LPAREN Exp RPAREN {openScope();
+			|WHILE LPAREN M Exp RPAREN {openScope();
 			                          checkIfBool($3->getType());
 			                          incWhileCounter();}
 			               Statement {closeScope();
+			                          $$ = new StatementClass(STATEMENT_WHILE);
 			                          decWhileCounter();}
             |LBRACE                  {openScope();}
-             Statements RBRACE       {closeScope();}
+             Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATS_R);
+                                      closeScope();}
 ;
 IfElse:     /*epsilon*/ %prec ASSIGN
-            |ELSE {openScope();} N M Statement {closeScope();}
+            |ELSE                    {openScope();}
+            N M Statement            {$$ = new StatementClass(STATEMENT_IF_ELSE);
+                                      closeScope();}
 ;
 
 Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->getId(), $3->getVecArgsType());

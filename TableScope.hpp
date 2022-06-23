@@ -13,7 +13,7 @@ public:
     TableScope();
     ~TableScope() = default;
     void pushEntry(std::string id, int offset, std::string type,
-                   std::string value = std::string(), bool isFunc = false,
+                   bool isFunc = false,
                    std::vector<std::string> argsTypes = std::vector<std::string>());
     void popEntry();
 	TableEntry& topEntry();

@@ -47,11 +47,15 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
     switch (opType) {
         case EXP_OP_ID:
         {
-            //gets the offset of var. will help us ID value it in stack.
-            TableEntry* idEntry = symbolTable.findEntryInTable(exp1->getId()); //do we need to check if not null?
-            int idOffset = idEntry->get_offset();
-            std::string idOffsetStr = std::to_string(idOffset);
-            ///TODO - need to distinguish between local variables and function arguments case
+            //gets the offset of var. will help us ID value is in stack.
+            ///TODO - need to distinguish between local variables and function arguments case (in call?)
+            int idOffset = getOffsetById(exp1->getId());
+            if(idOffset < 0){
+
+            }else{
+
+            }
+            std::string idOffsetStr = to_string(idOffset);
             //all vars are saved in the stack in size i32, as said in PDF and recommended in PIAZZA
             Register addrReg; //will hold the pointer of the value in the stack
             //need to create pointer for the stack, and special register to save it (stack location register).
@@ -71,7 +75,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             //do we need to makelist here? if so - by what? only if its boolean?
             if (type == "BOOL") {
                 Register tempReg;
-                code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"); //checking if value is truelist
+                code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"; //checking if value is truelist
                 codeBuffer.emit(code);
                 code = "br i1 " + tempReg.getRegName() + ", label @, label @";
                 int bufferLocation = codeBuffer.emit(code);
@@ -89,7 +93,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             if (type == "BOOL") {
                 Register tempReg;
-                code = tempReg.getRegName() + " = icmp eq i1 " + exp1->getRegName() + ", 1"); //checking if value is truelist
+                code = tempReg.getRegName() + " = icmp eq i1 " + exp1->getRegName() + ", 1"; //checking if value is truelist
                 codeBuffer.emit(code);
                 code = "br i1 " + tempReg.getRegName() + ", label @, label @";
                 int bufferLocation = codeBuffer.emit(code);
@@ -108,14 +112,14 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         case EXP_OP_NUM:
         {
             //it this case, type is always "INT"
-            code = reg.getRegNaem() + " = add " + getSizeByType(type) + " " + value + ", 0";
+            code = reg.getRegName() + " = add " + getSizeByType(type) + " " + value + ", 0";
             codeBuffer.emit(code);
             break;
         }
         case EXP_OP_NUM_B:
         {
             //it this case, type is always "BYTE"
-            code = reg.getRegNaem() + " = add " + getSizeByType(type) + " " + value + ", 0";
+            code = reg.getRegName() + " = add " + getSizeByType(type) + " " + value + ", 0";
             codeBuffer.emit(code);
             break;
         }
@@ -318,8 +322,78 @@ void ExpListClass::addNewArgType(std::string argType) {
     vecArgsType.push_back(argType);
 }
 
-StatementClass::StatementClass() : nextlist(vector<pair<int,BranchLabelIndex>>()){}
-vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist() {return nextlist;}
+StatementClass::StatementClass(STATEMENT_TYPE stType) : stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>()){
+    std::string code;
+    switch (stType) {
+        case STATEMENT_ID:
+        {
+            break;
+        }
+        case STATEMENT_TYPE_ID_ASS_EXP:
+        {
+            break;
+
+        }
+        case STATEMENT_AUTO_ID_ASS_EXP:
+        {
+            break;
+
+        }
+        case STATEMENT_ID_ASS_EXP:
+        {
+            break;
+
+        }
+        case STATMENT_CALL:
+        {
+            break;
+
+        }
+        case STATEMENT_RET:
+        {
+            break;
+
+        }
+        case STATEMENT_RET_EXP:
+        {
+            break;
+
+        }
+        case STATEMENT_BR:
+        {
+            break;
+
+        }
+        case STATEMENT_CON:
+        {
+            break;
+
+        }
+        case STATEMENT_IF:
+        {
+            break;
+
+        }
+        case STATEMENT_IF_ELSE:
+        {
+            break;
+
+        }
+        case STATEMENT_WHILE:
+        {
+            break;
+
+        }
+        case STATEMENT_L_STATS_R:
+        {
+            break;
+
+        }
+    }
+
+}
+vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist(){return nextlist;}
+
 
 CallClass::CallClass(std::string type, std::string id) : type(type), id(id), reg(Register()) {}
 std::string CallClass::getType() {return type;}

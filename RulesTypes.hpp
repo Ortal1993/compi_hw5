@@ -27,6 +27,22 @@ enum OP_TYPE{
     EXP_OP_L_EXP_R
 };
 
+enum STATEMENT_TYPE{
+    STATEMENT_ID,
+    STATEMENT_TYPE_ID_ASS_EXP,
+    STATEMENT_AUTO_ID_ASS_EXP,
+    STATEMENT_ID_ASS_EXP,
+    STATMENT_CALL,
+    STATEMENT_RET,
+    STATEMENT_RET_EXP,
+    STATEMENT_BR,
+    STATEMENT_CON,
+    STATEMENT_IF,
+    STATEMENT_IF_ELSE,
+    STATEMENT_WHILE,
+    STATEMENT_L_STATS_R
+};
+
 class BaseClass {
 public:
     virtual ~BaseClass() = default;
@@ -164,13 +180,12 @@ public:
 
 class StatementClass : public BaseClass {
 private:
+    STATEMENT_TYPE stType;
     vector<pair<int,BranchLabelIndex>> nextlist;
-
 public:
-    StatementClass();
+    StatementClass(STATEMENT_TYPE stsType);
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
-
 };
 
 class CallClass : public BaseClass {

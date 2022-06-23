@@ -98,14 +98,14 @@ std::string getTypeById(std::string id) {
 }
 
 //adding variable to symbolTable
-void addVarNewEntry(std::string id, std::string type, std::string value) {
+void addVarNewEntry(std::string id, std::string type) {
     TableEntry* entryOfId = symbolTable.findEntryInTable(id); //check it is not already exist
     if (entryOfId != nullptr) {
         output::errorDef(yylineno,id);
         exit(0);
     }
     TableScope& topScope = symbolTable.getTopScope();
-    topScope.pushEntry(id, offset.getOffset(), type, value);
+    topScope.pushEntry(id, offset.getOffset(), type);
     offset.incOffset();
 
 }
@@ -117,11 +117,8 @@ void addFuncNewEntry(std::string id, std::string retType, std::vector<std::strin
         output::errorDef(yylineno, id);
         exit(0);
     }
-    //need to change the diractions of the args in the vector.
-    std::reverse(vecArgsType.begin(), vecArgsType.end());
-    /*for (std::vector<std::string>::reverse_iterator it = vecArgsType.rbegin(); it != vecArgsType.rend(); ++it) {
-        reverseArgs.push_back(*it);
-    }*/
+    //need to change the directions of the args in the vector.
+    std::reverse(vecArgsType.begin(), vecArgsType.end()); //now vecArgsTypes is in the regular order
     //push final result to table
     TableScope& topScope = symbolTable.getTopScope();
     topScope.pushEntry(id, 0, retType, true, vecArgsType);
@@ -258,6 +255,12 @@ std::string getSizeByType(std::string type){
     ///void???
 }
 
+int getOffsetById(std::string id){
+    TableEntry* entry = symbolTable.findEntryInTable(id);
+    if (entry == nullptr) {
+        output::errorUndef(yylineno, id);
+        exit(0);
+    }//do we need to check if not null?
+    return entry->getOffset();
+}
 
-
-//test

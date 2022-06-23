@@ -3,9 +3,9 @@
 TableScope::TableScope() : entries(std::vector<TableEntry>()){}
 
 void TableScope::pushEntry(std::string id, int offset, std::string type,
-                           std::string value, bool isFunc,
+                           bool isFunc,
                            std::vector<std::string> argsTypes) {
-    TableEntry newEntry(id, offset, type, value, isFunc, argsTypes);
+    TableEntry newEntry(id, offset, type, isFunc, argsTypes);
     entries.push_back(newEntry);
 }
 

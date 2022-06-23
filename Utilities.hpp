@@ -32,4 +32,5 @@ void checkMainExist();
 void addPrintFunctions();
 void printScope();
 std::string getSizeByType(std::string type);
+int getOffsetById(std::string id);
 #endif //_UTILITIES_
