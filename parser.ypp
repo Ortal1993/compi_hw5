@@ -49,7 +49,7 @@ Funcs:      /*epsilon*/
 ;
 
 FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());}
-                                      LBRACE  {openScope();///MAYBE WE NEED TO BE ABLE TO OPEN SCOPE IN SIZE OF 50+SIZE OF ARGS
+                                      LBRACE  {openScope();
                                                addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
             Statements {closeScope();}
             RBRACE
