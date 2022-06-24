@@ -6,6 +6,7 @@
 SymbolTable symbolTable;
 OffsetTable offset;
 int WhileCounter = 0;
+bool isReturn = false;
 static TableEntry& getCurrFunc();
 
 
@@ -272,4 +273,29 @@ std::vector<std::string> getFuncVecTypes(std::string funcId) {
     }
     std::vector<std::string> vecFuncTypes = funcEntry->getVecArgsTypes(); //already reversed!!!
     return vecFuncTypes;
+}
+
+void setIsReturn(bool status) {
+    isReturn = status;
+}
+
+void HandleReturn(std::string retType) {
+    if (isReturn == true) {
+        return;
+    }
+    else {
+        if (retType == "VOID") {
+            codeBuffer.emit("ret void");
+        }
+        else {
+            codeBuffer.emit("ret " + getSizeByType(retType) + " 0");
+        }
+    }
+}
+
+void allocateFuncStack() {
+    std::string code;
+    code = stackRegister.getRegName() + "= alloca [50 x i32]";
+    codeBuffer.emit(code);
+    stackRegister.setNewRegName();
 }

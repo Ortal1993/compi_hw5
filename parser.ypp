@@ -48,10 +48,12 @@ Funcs:      /*epsilon*/
             |FuncDecl Funcs
 ;
 
-FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());}
-                                      LBRACE  {openScope();///MAYBE WE NEED TO BE ABLE TO OPEN SCOPE IN SIZE OF 50+SIZE OF ARGS
+//TODO: need to create FuncDeclClass in which we add function declaration to global buffer (as we did with string - see tutorial for example)
+FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());
+                                               allocateFuncStack();}
+                                      LBRACE  {openScope(); setIsReturn(false);
                                                addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
-            Statements {closeScope();}
+            Statements {HandleReturn($1->getType()); closeScope();}
             RBRACE
 ;
 
@@ -90,7 +92,7 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
 			|RETURN SC				{checkReturnType("VOID");
 			                        $$ = new StatementClass(STATEMENT_RET);}
 			|RETURN Exp SC			{checkReturnType($2->getType());
-			                        $$ = new StatementClass(STATEMENT_RET_EXP);}
+			                        $$ = new StatementClass(STATEMENT_RET_EXP, $2);}
 			|BREAK SC				{checkIfBreakValid();
 			                        $$ = new StatementClass(STATEMENT_BR);}
 			|CONTINUE SC			{checkIfContinueValid();
@@ -103,11 +105,11 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
 			|WHILE LPAREN M Exp RPAREN {openScope();
 			                          checkIfBool($3->getType());
 			                          incWhileCounter();}
-			               Statement {closeScope();
-			                          $$ = new StatementClass(STATEMENT_WHILE);
+			          M Statement     {closeScope();
+			                          $$ = new StatementClass(STATEMENT_WHILE, $3, $8, $4, $7);
 			                          decWhileCounter();}
             |LBRACE                  {openScope();}
-             Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATS_R);
+             Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATS_R, $3);
                                       closeScope();}
 ;
 IfElse:     /*epsilon*/ %prec ASSIGN
@@ -120,8 +122,6 @@ Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->ge
                                       $$ = new CallClass(funcRetType, $1->getId(), $1, $3); }
 			|ID LPAREN RPAREN         {std::string funcRetType = checkFuncCall($1->getId());
 			                          $$ = new CallClass(funcRetType, $1->getId()); }
-
-
 ;
 
 ExpList:	Exp                     {$$ = new ExpListClass();
@@ -145,23 +145,23 @@ Exp: 	    ID                      {std::string type = getTypeById($1->getId());
     		|TRUE                   {$$ = new ExpClass(EXP_OP_TRUE, "BOOL");}
     		|FALSE                  {$$ = new ExpClass(EXP_OP_FALSE, "BOOL"));}
     		|NOT Exp                {checkIfBool($2->getType());
-    		                        $$ = new ExpClass(EXP_OP_NOT, "BOOL", std::string(""), $2);} /*the std::string("") is only for compatability with ExpClass*/
+    		                        $$ = new ExpClass(EXP_OP_NOT, "BOOL", std::string(""), $2);}
     		|Exp OR M Exp           {checkIfBool($1->getType());
     		                        checkIfBool($3->getType());
-    		                        $$ = new ExpClass(EXP_OP_OR, "BOOL", std::string(""), $1, $4, $3);} ///why ""?
+    		                        $$ = new ExpClass(EXP_OP_OR, "BOOL", std::string(""), $1, $4, $3);}
     		|Exp AND M Exp          {checkIfBool($1->getType());
     		                        checkIfBool($3->getType());
-    		                        $$ = new ExpClass(EXP_OP_AND, "BOOL", std::string(""), $1, $4, $3);} ///why ""?
+    		                        $$ = new ExpClass(EXP_OP_AND, "BOOL", std::string(""), $1, $4, $3);}
     		|Exp RELOP_EQUAL Exp    {checkIfNumeric($1->getType());
     		                        checkIfNumeric($3->getType());
-    		                        $$ = new ExpClass(EXP_OP_EQUAL, "BOOL", std::string(""), $1, $3, $2);} ///why ""?
+    		                        $$ = new ExpClass(EXP_OP_EQUAL, "BOOL", std::string(""), $1, $3, $2);}
             |Exp RELOP_GLT Exp      {checkIfNumeric($1->getType());
                                     checkIfNumeric($3->getType());
-                                    $$ = new ExpClass(EXP_OP_GLT, "BOOL", std::string(""), $1, $3, $2);} ///why ""?
+                                    $$ = new ExpClass(EXP_OP_GLT, "BOOL", std::string(""), $1, $3, $2);}
             |Exp BINOP_ADD Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(EXP_OP_ADD, newType, std::string(""), $1, $3, $2);} ///why ""?
+                                     $$ = new ExpClass(EXP_OP_ADD, newType, std::string(""), $1, $3, $2);}
             |Exp BINOP_MUL Exp      {std::string newType = setRetBinopType($1->getType(),$3->getType());
-                                     $$ = new ExpClass(EXP_OP_MUL, newType, std::string(""), $1, $3, $2);} ///why ""?
+                                     $$ = new ExpClass(EXP_OP_MUL, newType, std::string(""), $1, $3, $2);}
     		|LPAREN Type RPAREN Exp {checkIfNumeric($2->getType());
     		                        checkIfNumeric($4->getType());
     		                        $$ = new ExpClass(EXP_OP_CAST, $2->getType(), $4->getValue(), $4);}

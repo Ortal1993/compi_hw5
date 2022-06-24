@@ -54,31 +54,38 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         case EXP_OP_ID:
         {
             //gets the offset of var. will help us ID value is in stack.
-            ///TODO - need to distinguish between local variables and function arguments case (in call?)
+            ///distinguish between local variables and function arguments case (in call?)
+            Register valueReg; //temporary register to save value. if not boolean, will be stored in exp reg.
             int idOffset = getOffsetById(exp1->getId());
             if(idOffset < 0){
                 //argument case
-            }else{
+                //exp_reg = add %(the offset of argument * -1 (-1)), 0;
+                int argRegNum = (idOffset*(-1)) - 1;
+                std::string argRegName = "$" + std::to_string(argRegNum);
+                code = valueReg.getRegName() + " = add " + getSizeByType(type) + " " + argRegName + ", 0";
+                codeBuffer.emit(code);
+            }
+            else {
                 //local var case
+                //exp_reg = load  idptr;
+                std::string idOffsetStr = to_string(idOffset);
+                //all vars are saved in the stack in size i32, as said in PDF and recommended in PIAZZA
+                Register addrReg; //will hold the pointer of the value in the stack
+                //need to create pointer for the stack, and special register to save it (stack location register).
+                code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+                codeBuffer.emit(code);
+                //now we need to load the value to the register we now work with.
+                //there are 2 cases - if the var we work on is not INT, we need to trunc the size first.
+                if(type != "INT") {
+                    Register tempReg;
+                    codeBuffer.emit(tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                    codeBuffer.emit(valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
+                }
+                else { //can't put in exp reg if the value is boolean!!! not allowed! need to create jump
+                    codeBuffer.emit(valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                }
             }
-            std::string idOffsetStr = to_string(idOffset);
-            //all vars are saved in the stack in size i32, as said in PDF and recommended in PIAZZA
-            Register addrReg; //will hold the pointer of the value in the stack
-            //need to create pointer for the stack, and special register to save it (stack location register).
-            code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-            codeBuffer.emit(code);
-            //now we need to load the value to the register we now work with.
-            //there are 2 cases - if the var we work on is not INT, we need to trunc the size first.
-            Register valueReg; //temporary register to save value. if not boolean, will be stored in exp reg.
-            if(type != "INT") {
-                Register tempReg;
-                codeBuffer.emit(tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
-                codeBuffer.emit(valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
-            }
-            else { //can't put in exp reg if the value is boolean!!! not allowed! need to create jump
-                codeBuffer.emit(valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
-            }
-            //do we need to makelist here? if so - by what? only if its boolean?
+            //check if boolean
             if (type == "BOOL") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"; //checking if value is truelist
@@ -93,7 +100,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             else {
                 codeBuffer.emit(reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
             }
-        break;
+
+            break;
         }
         case EXP_OP_CALL:
         {
@@ -335,10 +343,22 @@ void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
     vecArgsValue.push_back(argValue);
 }
 
-StatementClass::StatementClass(STATEMENT_TYPE stType, BaseClass* exp1, BaseClass* exp2) :
-                                stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>())
-{
+class StatementsClass : public BaseClass { //TODO: finish c'tor of statements
+private:
+    STATEMENTS_TYPE stsType;
+    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
+    vector<pair<int,BranchLabelIndex>> breaklist;
+public:
+    StatementsClass(STATEMENTS_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
+    ~StatementsClass() = default;
+    vector<pair<int,BranchLabelIndex>> getNextlist() override;
+    vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+};
 
+
+StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClass* exp2, BaseClass* exp3, BaseClass* exp4) :
+                                stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>()), breaklist(vector<pair<int,BranchLabelIndex>>())
+{
     std::string code;
     switch (stType) {
         case STATEMENT_ID:
@@ -383,30 +403,39 @@ StatementClass::StatementClass(STATEMENT_TYPE stType, BaseClass* exp1, BaseClass
             break;
 
         }
-        case STATMENT_CALL:
+        case STATEMENT_CALL:
         {
+            //nothing to be done... all done on STATEMENT->CALL->in callClass we add code to LLVM.
             break;
-
         }
-        case STATEMENT_RET:
+        case STATEMENT_RET: //TODO: do we want to add genLabel after every 'ret' and 'goto' command?
         {
+            setIsReturn(true);
+            code = "ret void";
+            codeBuffer.emit(code);
             break;
-
         }
         case STATEMENT_RET_EXP:
         {
+            setIsReturn(true);
+            codeBuffer.emit("ret " + getSizeByType(exp1->getType()) + " " + exp1->getRegName());
             break;
-
         }
-        case STATEMENT_BR:
+        case STATEMENT_BREAK:
         {
+            code = "br label @";
+            int bufferLocation = codeBuffer.emit(code);
+            pair<int,BranchLabelIndex> ifBreak = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+            this->breaklist = codeBuffer.makelist(ifBreak);
             break;
-
         }
-        case STATEMENT_CON:
+        case STATEMENT_CONTINUE:
         {
+            code = "br label @";
+            int bufferLocation = codeBuffer.emit(code);
+            pair<int,BranchLabelIndex> ifContinue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+            this->nextlist = codeBuffer.makelist(ifContinue);
             break;
-
         }
         case STATEMENT_IF:
         {
@@ -420,13 +449,19 @@ StatementClass::StatementClass(STATEMENT_TYPE stType, BaseClass* exp1, BaseClass
         }
         case STATEMENT_WHILE:
         {
+            codeBuffer.bpatch(exp2->getNextlist(), exp3->getLabel());
+            codeBuffer.bpatch(exp1->getTruelist(), exp4->getLabel());
+            nextlist = exp1->getFalselist();
+            code = "br label %" + exp3->getLabel();
             break;
-
         }
-        case STATEMENT_L_STATS_R:
-        {
-            break;
 
+
+        case STATEMENT_L_STATEMENTS_R:
+        {
+            this->nextlist = exp1->getNextlist();
+            this->breaklist = exp1->getBreaklist();
+            break;
         }
         default:
         {
@@ -458,7 +493,6 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
         }
         case CALL_ID_EXPLIST:
         {
-
             std::vector<std::string> typesGiven = exp2->getVecArgsType();
             std::vector<std::string> valuesGiven = exp2->getVecArgsValue();
             std::reverse(typesGiven.begin(), typesGiven.end());

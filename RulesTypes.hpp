@@ -27,20 +27,25 @@ enum OP_TYPE{
     EXP_OP_L_EXP_R
 };
 
+enum STATEMENTS_TYPE {
+    STATEMENTS_STATEMENT,
+    STATEMENTS_STATEMENTS_STATEMENT
+};
+
 enum STATEMENT_TYPE{
     STATEMENT_ID,
     STATEMENT_TYPE_ID_ASS_EXP,
     STATEMENT_AUTO_ID_ASS_EXP,
     STATEMENT_ID_ASS_EXP,
-    STATMENT_CALL,
+    STATEMENT_CALL,
     STATEMENT_RET,
     STATEMENT_RET_EXP,
-    STATEMENT_BR,
-    STATEMENT_CON,
+    STATEMENT_BREAK,
+    STATEMENT_CONTINUE,
     STATEMENT_IF,
     STATEMENT_IF_ELSE,
     STATEMENT_WHILE,
-    STATEMENT_L_STATS_R
+    STATEMENT_L_STATEMENTS_R
 };
 
 enum CALL_TYPE {
@@ -69,6 +74,7 @@ public:
     virtual vector<pair<int,BranchLabelIndex>> getTruelist() {std::cout << "error with getTruelist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getFalselist() {std::cout << "error with getFalselist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getNextlist() {std::cout << "error with getNextlist()!" << std::endl;}
+    virtual vector<pair<int,BranchLabelIndex>> getBreaklist() {std::cout << "error with getBreaklist()!" << std::endl;}
 };
 
 class RetTypeClass : public BaseClass {
@@ -189,14 +195,28 @@ public:
     void addNewArgType(std::string argType, std::string argValue) override;
 };
 
+class StatementsClass : public BaseClass {
+private:
+    STATEMENTS_TYPE stType;
+    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
+    vector<pair<int,BranchLabelIndex>> breaklist;
+public:
+    StatementsClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
+    ~StatementsClass() = default;
+    vector<pair<int,BranchLabelIndex>> getNextlist() override;
+    vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+};
+
 class StatementClass : public BaseClass {
 private:
     STATEMENT_TYPE stType;
-    vector<pair<int,BranchLabelIndex>> nextlist;
+    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
+    vector<pair<int,BranchLabelIndex>> breaklist;
 public:
-    StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
+    StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
+    vector<pair<int,BranchLabelIndex>> getBreaklist() override;
 };
 
 class CallClass : public BaseClass {
