@@ -16,6 +16,7 @@ std::string Register::getRegName() {
 }
 
 int StackScopeRegister::counter = 0;
+
 std::string StackScopeRegister::regName = std::string();
 
 StackScopeRegister::StackScopeRegister() {}

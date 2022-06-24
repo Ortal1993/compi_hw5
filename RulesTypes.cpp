@@ -2,6 +2,7 @@
 #include "Utilities.hpp"
 #include "bp.hpp"
 #include <string>
+#include <algorithm>
 
 RetTypeClass::RetTypeClass(std::string type) : type(type) {}
 std::string RetTypeClass::getType() {return type;}
@@ -19,7 +20,7 @@ StringClass::StringClass(std::string value) : strReg(StringRegister()), value(va
 }
 std::string StringClass::getValue() {return value;}
 
-std::string StringClass::getRegName() {return strReg.getName();}
+std::string StringClass::getRegName() {return strReg.getRegName();}
 
 NUMClass::NUMClass(std::string value) : value(value) {}
 std::string NUMClass::getValue() {return value;}
@@ -133,6 +134,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             std::string sizeStr =  std::to_string(exp1->getValue().size());
             code = exp1->getRegName() + " = internal constant [" + sizeStr + " x i8] c\"" + exp1->getValue() + "\\00\"" ;
             codeBuffer.emitGlobal(code);
+            code = reg.getRegName() + " add i8* " + exp1->getRegName() + ", 0";
+            codeBuffer.emit(code);
             break;
         }
         case EXP_OP_TRUE:
@@ -323,10 +326,13 @@ std::string ExpClass::getType() {return type;}
 std::string ExpClass::getValue() {return value;}
 std::string ExpClass::getRegName() {return reg.getRegName();}
 
-ExpListClass::ExpListClass(std::vector<std::string> vecArgsType) : vecArgsType(vecArgsType) {}
+ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsValue) :
+                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue) {}
 std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
-void ExpListClass::addNewArgType(std::string argType) {
+std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
+void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
     vecArgsType.push_back(argType);
+    vecArgsValue.push_back(argValue);
 }
 
 StatementClass::StatementClass(STATEMENT_TYPE stType, BaseClass* exp1, BaseClass* exp2) :
@@ -452,8 +458,34 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
         }
         case CALL_ID_EXPLIST:
         {
-           //TODO
-           break;
+
+            std::vector<std::string> typesGiven = exp2->getVecArgsType();
+            std::vector<std::string> valuesGiven = exp2->getVecArgsValue();
+            std::reverse(typesGiven.begin(), typesGiven.end());
+            std::reverse(valuesGiven.begin(), valuesGiven.end());
+            std::vector<std::string> vecFuncTypes = getFuncVecTypes(exp1->getId()); //already reversed!!!
+
+            if (type != "VOID") {
+                code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "(";
+            }
+            else {
+                code = "call " + getSizeByType(type) + " @" + exp1->getId() + "(";;
+            }
+            for (int i=0; i < typesGiven.size() ; i++) {
+                std::string argType = getSizeByType(typesGiven[i]);
+                if (argType != vecFuncTypes[i]) {
+                    Register tempReg;
+                    codeBuffer.emit(tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
+                    code += argType + " " + tempReg.getRegName() + ", " ;
+                }
+                else {
+                    code += argType + " " + valuesGiven[i] + ", " ;
+                }
+            }
+            code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
+            code += ")";
+            codeBuffer.emit(code);
+            break;
         }
         default:
             std::cerr << "CALL_TYPE ERROR!" << std::endl;

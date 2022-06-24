@@ -264,3 +264,12 @@ int getOffsetById(std::string id){
     return entry->getOffset();
 }
 
+std::vector<std::string> getFuncVecTypes(std::string funcId) {
+    TableEntry* funcEntry = symbolTable.getFirstScope().findEntryInScope(funcId); //checking specifically in the "func scope"
+    if (funcEntry == nullptr || funcEntry->getIsFunc() == false) {
+        output::errorUndefFunc(yylineno, funcId);
+        exit(0);
+    }
+    std::vector<std::string> vecFuncTypes = funcEntry->getVecArgsTypes(); //already reversed!!!
+    return vecFuncTypes;
+}

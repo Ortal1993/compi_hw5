@@ -33,4 +33,5 @@ void addPrintFunctions();
 void printScope();
 std::string getSizeByType(std::string type);
 int getOffsetById(std::string id);
+std::vector<std::string> getFuncVecTypes(std::string funcId);
 #endif //_UTILITIES_

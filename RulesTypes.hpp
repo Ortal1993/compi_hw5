@@ -55,13 +55,14 @@ public:
     virtual std::string getId() {std::cout << "error with getId()!" << std::endl;}
     virtual std::vector<std::string> getVecArgsType() {std::cout << "error with getVecArgsType()!" << std::endl;}
     virtual std::vector<std::string> getVecArgsID() {std::cout << "error with getVecArgsID()!" << std::endl;}
+    virtual std::vector<std::string> getVecArgsValue() {std::cout << "error with getVecArgsValue()!" << std::endl;}
     virtual void addNewArg(std::string argType, std::string argID) {std::cout << "error with addNewArg()!" << std::endl;}
     virtual std::string getArgType() {std::cout << "error with getArgType()!" << std::endl;}
     virtual std::string getArgID() {std::cout << "error with getArgID()!" << std::endl;}
     virtual std::string getValue() {std::cout << "error with getValue()!" << std::endl;}
     virtual int getQuad() {std::cout << "error with getQuad()!" << std::endl;}
     virtual std::string getLabel() {std::cout << "error with getLabel()!" << std::endl;}
-    virtual void addNewArgType(std::string argType) {std::cout << "error with addNewArgType()!" << std::endl;}
+    virtual void addNewArgType(std::string argType, std::string argValue) {std::cout << "error with addNewArgType()!" << std::endl;}
     virtual std::string getRegName() {std::cout << "error with getReg()!" << std::endl;}
     virtual std::string getOpStr() {std::cout << "error with getOp()!" << std::endl;}
     virtual OP_TYPE getOpType() {std::cout << "error with ConvertOpToEnum()!" << std::endl;}
@@ -178,11 +179,14 @@ public:
 class ExpListClass : public BaseClass {
 private:
     std::vector<std::string> vecArgsType;
+    std::vector<std::string> vecArgsValue; //contains the reg names where the values are held.
 public:
-    ExpListClass(std::vector<std::string> vecArgsType = std::vector<std::string>());
+    ExpListClass(std::vector<std::string> vecArgsType = std::vector<std::string>(),
+                std::vector<std::string> vecArgValues = std::vector<std::string>());
     ~ExpListClass() = default;
     std::vector<std::string> getVecArgsType() override;
-    void addNewArgType(std::string argType) override;
+    std::vector<std::string> getVecArgsValue() override;
+    void addNewArgType(std::string argType, std::string argValue) override;
 };
 
 class StatementClass : public BaseClass {
