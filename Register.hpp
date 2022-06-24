@@ -24,8 +24,23 @@ private:
 public:
     StackScopeRegister();
     ~Register() = default;
+    void incCounter();
     std::string getRegName();
     void setNewRegName(); //every time we allocate a new stack, we receive new address for it, and need to save it in new reg name.
-}
+};
+
+class StringRegister {
+private:
+    static int counter;
+    std::string regName;
+public:
+    StringRegister();
+    ~StringRegister() = default;
+    void incCounter();
+    std::string getRegName();
+};
+
+
+
 
 #endif //HW5_REGISTER_HPP

@@ -3,6 +3,7 @@
 
 #include "SymbolTable.hpp"
 #include "bp.hpp"
+#include "Register.hpp"
 #include <iostream>
 
 CodeBuffer& codeBuffer = CodeBuffer::instance();
@@ -33,4 +34,8 @@ void addPrintFunctions();
 void printScope();
 std::string getSizeByType(std::string type);
 int getOffsetById(std::string id);
+std::vector<std::string> getFuncVecTypes(std::string funcId);
+void setIsReturn(bool status);
+void HandleReturn(std::string retType);
+void allocateFuncStack();
 #endif //_UTILITIES_
