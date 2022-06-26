@@ -39,6 +39,7 @@ void setIsReturn(bool status);
 void HandleReturn(std::string retType);
 void allocateFuncStack();
 void declarePrintFunctions();
+void addDivisionByZeroError();
 void defineFuncDecl();
 void printBuffer();
 #endif //_UTILITIES_

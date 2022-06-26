@@ -41,9 +41,9 @@
 //rules
 Program:                                      {openScope();
                                                addPrintFunctionsToTable();
+                                               addDivisionByZeroError();
                                                declarePrintFunctions();}
-            Funcs                              {/*closeScope();*/ ///TO ASK
-                                               printBuffer();}
+            Funcs                              {printBuffer();}
 ;
 
 Funcs:      /*epsilon*/
@@ -114,7 +114,7 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
              Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATS_R, $3);
                                       closeScope();}
 ;
-IfElse:     /*epsilon*/ %prec ASSIGN {$$ = new IfElse()}
+IfElse:     /*epsilon*/ %prec ASSIGN {$$ = new IfElse(ELSE_UNUSED)}
             |ELSE                    {openScope();}
             N M Statement            {$$ = new IfElse(ELSE_USED, $3, $4, $5);
                                      closeScope();}

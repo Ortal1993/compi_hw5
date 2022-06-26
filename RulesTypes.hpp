@@ -228,18 +228,18 @@ public:
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
 };
 
-class IfElse : public BaseClass {
+class IfElseClass : public BaseClass {
 private:
     ELSE_TYPE elseType;
     std::string label;
     vector<pair<int,BranchLabelIndex>> nextlist;
     vector<pair<int,BranchLabelIndex>> breaklist;
 public:
-    IfElse(ELSE_TYPE elseType = ELSE_UNUSED, std::string label = std::string(),
+    IfElseClass(ELSE_TYPE elseType = ELSE_UNUSED, std::string label = std::string(),
     BaseClass* exp1 = nullptr,
            BaseClass* exp2 = nullptr,
            BaseClass* exp3 = nullptr);
-    ~IfElse() = default;
+    ~IfElseClass() = default;
     ELSE_TYPE getElseType() override;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;

@@ -224,7 +224,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     regExp2 = tempReg.getRegName();
                 }
                 codeBuffer.emit(code);
-            }else{
+            }
+            else {
                 if(exp1->getType() == "BYTE"){
                     signedChar = "u";
                 }
@@ -279,26 +280,40 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             std::string regExp1 = exp1->getRegName();
             std::string regExp2 = exp2->getRegName();
-            if(exp1->getType() != exp2->getType()){
+            std::string signedChar = "s";
+            if(exp1->getType() != exp2->getType()){ //1 int and 1 byte --> type = int
                 Register tempReg;
                 if(exp1->getType() == "BYTE"){
                     code = tempReg.getRegName() + " = zext i8 " + exp1->getRegName() + " to i32";
                     regExp1 = tempReg.getRegName();
-                }else{
+                }
+                else {
                     code = tempReg.getRegName() + " = zext i8 " + exp2->getRegName() + " to i32";
                     regExp2 = tempReg.getRegName();
                 }
                 codeBuffer.emit(code);
             }
-            if (opStr == "*") {
-                ///NEED TO CHECK THE SIZE WE ADD/SUB! i8, i16 etc.
-                ///NEED TO CHECK ABOUT UNSIGNED? udiv, sdiv
-                //$t3 = add $t2, $t3
-                code = this->reg.getRegName() + " = mul " + exp1->getRegName() + ", " + exp2->getRegName();
-            } else { //"/"
-                //$t3 = div $t2, $t3
-                code = this->reg.getRegName() + " = div " + exp1->getRegName() + ", " + exp2->getRegName();
+            else { // 2 byte or 2 int --> type = type
+                if(exp1->getType() == "BYTE"){
+                    signedChar = "u";
+                }
             }
+            if (opStr == "*") {
+                //$t3 = add $t2, $t3
+                code = this->reg.getRegName() + " = mul " + getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
+            }
+            else { //division
+                //$t3 = div $t2, $t3
+                //check if dividing by 0:
+                Register zeroReg;
+                //<result> = icmp eq i32 4, 5
+                //br i1 %cond, label %IfEqual, label %IfUnequal
+                codeBuffer.emit(zeroReg.getRegName() + " = icmp eq " + getSizeByType(type) +  " " + exp2->getRegName() + ", 0");
+                int bufferLocation = codeBuffer.emit("br i1 " + zeroReg.getRegName() + ", label @, label @");
+                //TODO: stopped here. need to add call to zero error. by creating true/false list?
+                code = this->reg.getRegName() + " = " + signedChar + "div "+ getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
+            }
+            //TODO: fit size to byte first!
             codeBuffer.emit(code);
             this->truelist = codeBuffer.merge(exp1->getTruelist(), exp2->getTruelist());
             this->falselist = codeBuffer.merge(exp1->getFalselist(), exp2->getFalselist());
@@ -481,33 +496,32 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_IF://TODO: do we need to add genLabel after every 'ret' and 'goto' command?
         {
+            //exp1 -> (if) exp, exp2 -> (if) M, exp3 ->  S1, exp4 -> ifElse
             if(exp4->getElseType() == ELSE_UNUSED){
                 codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
                 nextlist = codeBuffer.merge(exp1->getFalselist(), exp3->getNextlist());
+
+                code = "br label @"; //generating the final jump to the label of the next block
+                int bufferLocation = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                nextlist = codeBuffer.merge(this->nextlist, codeBuffer.makelist(endBlockPair));
+                std::string endOfBlock = codeBuffer.genLabel();
+                codeBuffer.bpatch(this->nextlist, endOfBlock);
+                breaklist = exp3->getBreaklist(); //in case of: while < if < while
+
+            } else {
+                codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
+                codeBuffer.bpatch(exp1->getFalselist(), exp4->getLabel());
+                nextlist = codeBuffer.merge(exp3->getNextlist(), exp4->getNextlist());
 
                 code = "br label @";
                 int bufferLocation = codeBuffer.emit(code);
                 pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
                 std::string endOfBlock = codeBuffer.genLabel();
-                codeBuffer.bpatch(codeBuffer.makelist(endBlockPair), endOfBlock);
-                breaklist = exp3->getBreaklist();
-
-            } else {
-                codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
-                nextlist = codeBuffer.merge(exp1->getNextlist(), exp4->getNextlist());
-                codeBuffer.bpatch(exp1->getFalselist(), exp4->getLabel());
-
-                /*code = "br label @";
-                int bufferLocation = codeBuffer.emit(code);
-                pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
-                nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
-                std::string endOfBlock = codeBuffer.genLabel();
-                codeBuffer.bpatch(codeBuffer.makelist(endBlockPair), endOfBlock);
-                breaklist = exp3->getBreaklist();*/
-                ///TODO - finish
+                codeBuffer.bpatch(this->nextlist, endOfBlock);
+                breaklist = codeBuffer.merge(exp3->getBreaklist(), exp4->getBreaklist());
             }
-
             break;
         }
         case STATEMENT_IF_ELSE:
@@ -539,10 +553,10 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
     }
 
 }
-vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist(){return nextlist;}
+vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist() {return nextlist;}
 
 
-IfElse::IfElse(ELSE_TYPE elseType, std::string label,
+IfElseClass::IfElseClass(ELSE_TYPE elseType, std::string label,
                BaseClass* exp1, BaseClass* exp2, BaseClass* exp3) :
                elseType(elseType), label(label),
                nextlist(vector<pair<int,BranchLabelIndex>>()),
@@ -550,13 +564,13 @@ IfElse::IfElse(ELSE_TYPE elseType, std::string label,
     if(exp1 != nullptr && exp2 != nullptr && exp3 != nullptr){
         label = exp2->getLabel();
         nextlist = codeBuffer.merge(exp1->getNextlist(), exp3->getNextlist());
-        breaklist = exp3->getNextlist();
+        breaklist = exp3->getBreaklist();
     }
 }
-ELSE_TYPE IfElse::getElseType() {return elseType;}
-vector<pair<int,BranchLabelIndex>> IfElse::getNextlist() {return nextlist;}
-vector<pair<int,BranchLabelIndex>> IfElse::getBreaklist() {return breaklist;}
-std::string IfElse::getLabel() {return label;}
+ELSE_TYPE IfElseClass::getElseType() {return elseType;}
+vector<pair<int,BranchLabelIndex>> IfElseClass::getNextlist() {return nextlist;}
+vector<pair<int,BranchLabelIndex>> IfElseClass::getBreaklist() {return breaklist;}
+std::string IfElseClass::getLabel() {return label;}
 
 CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) : callType(callType), type(type), reg(Register())
 {

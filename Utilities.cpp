@@ -203,7 +203,7 @@ std::string checkFuncCall(std::string funcId, std::vector<std::string> vecGivenA
         exit(0);
     }
     std::vector<std::string> vecFuncTypes = funcEntry->getVecArgsTypes(); //already reversed!!!
-    std::reverse(vecGivenArgsTypes.begin(), vecGivenArgsTypes.end());
+    //std::reverse(vecGivenArgsTypes.begin(), vecGivenArgsTypes.end());
 
     if (vecFuncTypes.size() != vecGivenArgsTypes.size()) {
         output::errorPrototypeMismatch(yylineno, funcId, vecFuncTypes);
@@ -310,8 +310,31 @@ void allocateFuncStack() {
 }
 
 void declarePrintFunctions() {
+    std::string code;
+    codeBuffer.emitGlobal("declare i32 @printf(i8*, ...)");
+    codeBuffer.emitGlobal("declare void @exit(i32)");
+    codeBuffer.emitGlobal("@.int_specifier = constant [4 x i8] c\"%d\0A\00\"");
+    codeBuffer.emitGlobal("@.str_specifier = constant [4 x i8] c\"%s\0A\00\"");
+    codeBuffer.emit("\n");
 
-} ///TODO
+    codeBuffer.emit("define void @printi(i32) {");
+    codeBuffer.emit("%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0");
+    codeBuffer.emit("call i32 (i8*, ...) @printf(i8* %spec_ptr, i32 %0)");
+    codeBuffer.emit("ret void");
+    codeBuffer.emit("}");
+    codeBuffer.emit("\n");
+
+    codeBuffer.emit("define void @print(i8*) {");
+    codeBuffer.emit("%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0");
+    codeBuffer.emit("call i32 (i8*, ...) @printf(i8* %spec_ptr, i8* %0)");
+    codeBuffer.emit("ret void");
+    codeBuffer.emit("}");
+    codeBuffer.emit("\n");
+}
+
+void addDivisionByZeroError() {
+    codeBuffer.emitGlobal("@.errDivByZero = internal constant [22 x i8] c\"Error division by zero\"");
+}
 
 void defineFuncDecl(std::string retType, std::string id, std::vector<std::string> vecArgsType){
         std::string code;
@@ -319,7 +342,7 @@ void defineFuncDecl(std::string retType, std::string id, std::vector<std::string
         for(int i = 0; i < vecArgsType.size(); i++){
             code += getSizeByType(vecArgsType[i]) + ", ";
         }
-        if(vecArgsType.size() != 0){
+        if(vecArgsType.size() != 0) {
             code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
         }
         code = + ") {";
