@@ -53,6 +53,11 @@ enum CALL_TYPE {
     CALL_ID_EXPLIST
 };
 
+enum ELSE_TYPE{
+    ELSE_USED,
+    ELSE_UNUSED
+};
+
 class BaseClass {
 public:
     virtual ~BaseClass() = default;
@@ -68,9 +73,10 @@ public:
     virtual int getQuad() {std::cout << "error with getQuad()!" << std::endl;}
     virtual std::string getLabel() {std::cout << "error with getLabel()!" << std::endl;}
     virtual void addNewArgType(std::string argType, std::string argValue) {std::cout << "error with addNewArgType()!" << std::endl;}
-    virtual std::string getRegName() {std::cout << "error with getReg()!" << std::endl;}
-    virtual std::string getOpStr() {std::cout << "error with getOp()!" << std::endl;}
-    virtual OP_TYPE getOpType() {std::cout << "error with ConvertOpToEnum()!" << std::endl;}
+    virtual std::string getRegName() {std::cout << "error with getRegName()!" << std::endl;}
+    virtual std::string getOpStr() {std::cout << "error with getOpStr()!" << std::endl;}
+    virtual OP_TYPE getOpType() {std::cout << "error with getOpType()!" << std::endl;}
+    virtual ELSE_TYPE getElseType() {std::cout << "error with getElseType()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getTruelist() {std::cout << "error with getTruelist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getFalselist() {std::cout << "error with getFalselist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getNextlist() {std::cout << "error with getNextlist()!" << std::endl;}
@@ -164,10 +170,10 @@ public:
 
 class ExpClass : public BaseClass {
 private:
+    OP_TYPE opType;
     std::string type;
     std::string value;
     Register reg;
-    OP_TYPE opType;
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
 public:
@@ -197,11 +203,12 @@ public:
 
 class StatementsClass : public BaseClass {
 private:
-    STATEMENTS_TYPE stType;
+    STATEMENTS_TYPE stsType;
     vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
     vector<pair<int,BranchLabelIndex>> breaklist;
 public:
-    StatementsClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
+    StatementsClass(STATEMENTS_TYPE stsType,
+                    BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
     ~StatementsClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
@@ -213,10 +220,30 @@ private:
     vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
     vector<pair<int,BranchLabelIndex>> breaklist;
 public:
-    StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
+    StatementClass(STATEMENT_TYPE stType,
+                   BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr,
+                   BaseClass* exp3 = nullptr, BaseClass* exp4 = nullptr);
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+};
+
+class IfElse : public BaseClass {
+private:
+    ELSE_TYPE elseType;
+    std::string label;
+    vector<pair<int,BranchLabelIndex>> nextlist;
+    vector<pair<int,BranchLabelIndex>> breaklist;
+public:
+    IfElse(ELSE_TYPE elseType = ELSE_UNUSED, std::string label = std::string(),
+    BaseClass* exp1 = nullptr,
+           BaseClass* exp2 = nullptr,
+           BaseClass* exp3 = nullptr);
+    ~IfElse() = default;
+    ELSE_TYPE getElseType() override;
+    vector<pair<int,BranchLabelIndex>> getNextlist() override;
+    vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+    std::string getLabel() override;
 };
 
 class CallClass : public BaseClass {

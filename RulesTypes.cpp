@@ -15,7 +15,6 @@ std::string IDClass::getId() {return id;}
 int IDClass::getQuad() {return quad;}
 
 StringClass::StringClass(std::string value) : strReg(StringRegister()), value(value) {
-     //std::string str2 = str.substr (3,5);
      value = value.substr(1, value.size()-2);
 }
 std::string StringClass::getValue() {return value;}
@@ -25,17 +24,19 @@ std::string StringClass::getRegName() {return strReg.getRegName();}
 NUMClass::NUMClass(std::string value) : value(value) {}
 std::string NUMClass::getValue() {return value;}
 
-FormalsClass::FormalsClass(std::vector<std::string> argsType, std::vector<std::string> argsID) : vecArgsType(argsType), vecArgsID(argsID) {}
+FormalsClass::FormalsClass(std::vector<std::string> argsType, std::vector<std::string> argsID) :
+                            vecArgsType(argsType), vecArgsID(argsID) {}
 std::vector<std::string> FormalsClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> FormalsClass::getVecArgsID() {return vecArgsID;}
 
-FormalsListClass::FormalsListClass(std::vector<std::string> argsType, std::vector<std::string> argsID) : vecArgsType(argsType), vecArgsID(argsID) {}
+FormalsListClass::FormalsListClass(std::vector<std::string> argsType, std::vector<std::string> argsID) :
+                                    vecArgsType(argsType), vecArgsID(argsID) {}
 std::vector<std::string> FormalsListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> FormalsListClass::getVecArgsID() {return vecArgsID;}
 void FormalsListClass::addNewArg(std::string argType, std::string argID)
 {
-    vecArgsType.push_back(argType);
-    vecArgsID.push_back(argID);
+    vecArgsType.insert(vecArgsType.begin(), argType);
+    vecArgsID.insert(vecArgsID.begin(), argID);
 }
 
 FormalDeclClass::FormalDeclClass(std::string type, std::string id) : argType(type), argID(id) {}
@@ -44,7 +45,7 @@ std::string FormalDeclClass::getArgID() {return argID;}
 
 ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                    BaseClass* exp1, BaseClass* exp2, BaseClass* opExp) :
-                    type(type), value(value), reg(Register()), opType(opType),
+                    opType(opType), type(type), value(value), reg(Register()),
                     truelist(vector<pair<int,BranchLabelIndex>>()),
                     falselist(vector<pair<int,BranchLabelIndex>>())
 {
@@ -54,7 +55,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         case EXP_OP_ID:
         {
             //gets the offset of var. will help us ID value is in stack.
-            ///distinguish between local variables and function arguments case (in call?)
+            //distinguish between local variables and function arguments case (in call?)
             Register valueReg; //temporary register to save value. if not boolean, will be stored in exp reg.
             int idOffset = getOffsetById(exp1->getId());
             if(idOffset < 0){
@@ -333,6 +334,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
 std::string ExpClass::getType() {return type;}
 std::string ExpClass::getValue() {return value;}
 std::string ExpClass::getRegName() {return reg.getRegName();}
+vector<pair<int,BranchLabelIndex>> ExpClass::getTruelist() {return truelist;}
+vector<pair<int,BranchLabelIndex>> ExpClass::getFalselist(){ return falselist;}
 
 ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsValue) :
                             vecArgsType(vecArgsType), vecArgsValue(vecArgsValue) {}
@@ -343,35 +346,51 @@ void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
     vecArgsValue.push_back(argValue);
 }
 
-class StatementsClass : public BaseClass { //TODO: finish c'tor of statements
-private:
-    STATEMENTS_TYPE stsType;
-    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
-    vector<pair<int,BranchLabelIndex>> breaklist;
-public:
-    StatementsClass(STATEMENTS_TYPE stsType, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* M1 = nullptr, BaseClass* M2 = nullptr);
-    ~StatementsClass() = default;
-    vector<pair<int,BranchLabelIndex>> getNextlist() override;
-    vector<pair<int,BranchLabelIndex>> getBreaklist() override;
-};
+StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
+                                 BaseClass* exp1, BaseClass* exp2) :
+                                 stsType(stsType),
+                                 nextlist(vector<pair<int,BranchLabelIndex>>()),
+                                 breaklist(vector<pair<int,BranchLabelIndex>>()) {
+    switch (stsType) {
+        case STATEMENTS_STATEMENT:
+        {
+            this->nextlist = exp1->getNextlist();
+            this->breaklist = exp1->getBreaklist();
+            break;
+        }
+        case STATEMENTS_STATEMENTS_STATEMENT:
+        {
+            this->nextlist = codeBuffer.merge(exp1->getNextlist(), exp2->getNextlist());
+            this->breaklist = codeBuffer.merge(exp1->getBreaklist(), exp2->getBreaklist());
+            break;
+        }
+    }
+}
+vector<pair<int,BranchLabelIndex>> StatementsClass::getNextlist() {return nextlist;}
+vector<pair<int,BranchLabelIndex>> StatementsClass::getBreaklist(){ return breaklist;}
 
-
-StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClass* exp2, BaseClass* exp3, BaseClass* exp4) :
-                                stType(stType), nextlist(vector<pair<int,BranchLabelIndex>>()), breaklist(vector<pair<int,BranchLabelIndex>>())
+StatementClass::StatementClass(STATEMENT_TYPE stType,
+                               BaseClass* exp1, BaseClass* exp2,
+                               BaseClass* exp3, BaseClass* exp4) :
+                                stType(stType),
+                                nextlist(vector<pair<int,BranchLabelIndex>>()),
+                                breaklist(vector<pair<int,BranchLabelIndex>>())
 {
     std::string code;
     switch (stType) {
         case STATEMENT_ID:
         {
+            ///TODO - label? nextlist? breaklist?
             int idOffset = getOffsetById(exp1->getId());
             std::string idOffsetStr = to_string(idOffset);
             Register addrReg;
             code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
             codeBuffer.emit(code);
             code = "store i32 0, i32* " + addrReg.getRegName();
+            codeBuffer.emit(code);
             break;
         }
-        case STATEMENT_TYPE_ID_ASS_EXP:
+        case STATEMENT_TYPE_ID_ASS_EXP: ///TODO
         {
             int idOffset = getOffsetById(exp1->getId());
             std::string idOffsetStr = to_string(idOffset);
@@ -379,6 +398,28 @@ StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClas
             code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
             codeBuffer.emit(code);
             std::string type = exp2->getType();
+            if(type == "BOOL"){
+                std::string ifTrueLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(exp2->getTruelist(), ifTrueLabel);
+                code = "br label @";
+                int bufferLocationTrue = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocationTrue, FIRST);
+
+                std::string ifFalseLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(exp2->getFalselist(), ifFalseLabel);
+                code = "br label @";
+                int bufferLocationFalse = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocationFalse, FIRST);
+
+                vector<pair<int,BranchLabelIndex>> branchesToPatch;
+                branchesToPatch.push_back(ifTrue);
+                branchesToPatch.push_back(ifFalse);
+                std::string finalLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(branchesToPatch, finalLabel);
+
+                ///TO ASK
+
+            }
             if (type != "INT") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = zext " + getSizeByType(type) + " " + exp2->getRegName() + " to i32";
@@ -390,6 +431,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClas
                 code = "store i32 " + exp2->getRegName() + ", i32* " + addrReg.getRegName();
                 codeBuffer.emit(code);
             }
+
             break;
         }
         case STATEMENT_AUTO_ID_ASS_EXP:
@@ -408,14 +450,14 @@ StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClas
             //nothing to be done... all done on STATEMENT->CALL->in callClass we add code to LLVM.
             break;
         }
-        case STATEMENT_RET: //TODO: do we want to add genLabel after every 'ret' and 'goto' command?
+        case STATEMENT_RET: //TODO: do we need to add genLabel after every 'ret' and 'goto' command?
         {
             setIsReturn(true);
             code = "ret void";
             codeBuffer.emit(code);
             break;
         }
-        case STATEMENT_RET_EXP:
+        case STATEMENT_RET_EXP: //TODO: do we need to add genLabel after every 'ret' and 'goto' command?
         {
             setIsReturn(true);
             codeBuffer.emit("ret " + getSizeByType(exp1->getType()) + " " + exp1->getRegName());
@@ -437,26 +479,53 @@ StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClas
             this->nextlist = codeBuffer.makelist(ifContinue);
             break;
         }
-        case STATEMENT_IF:
+        case STATEMENT_IF://TODO: do we need to add genLabel after every 'ret' and 'goto' command?
         {
-            break;
+            if(exp4->getElseType() == ELSE_UNUSED){
+                codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
+                nextlist = codeBuffer.merge(exp1->getFalselist(), exp3->getNextlist());
 
+                code = "br label @";
+                int bufferLocation = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
+                std::string endOfBlock = codeBuffer.genLabel();
+                codeBuffer.bpatch(codeBuffer.makelist(endBlockPair), endOfBlock);
+                breaklist = exp3->getBreaklist();
+
+            } else {
+                codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
+                nextlist = codeBuffer.merge(exp1->getNextlist(), exp4->getNextlist());
+                codeBuffer.bpatch(exp1->getFalselist(), exp4->getLabel());
+
+                /*code = "br label @";
+                int bufferLocation = codeBuffer.emit(code);
+                pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
+                std::string endOfBlock = codeBuffer.genLabel();
+                codeBuffer.bpatch(codeBuffer.makelist(endBlockPair), endOfBlock);
+                breaklist = exp3->getBreaklist();*/
+                ///TODO - finish
+            }
+
+            break;
         }
         case STATEMENT_IF_ELSE:
         {
+            //nothing to do
             break;
-
         }
         case STATEMENT_WHILE:
         {
-            codeBuffer.bpatch(exp2->getNextlist(), exp3->getLabel());
-            codeBuffer.bpatch(exp1->getTruelist(), exp4->getLabel());
-            nextlist = exp1->getFalselist();
-            code = "br label %" + exp3->getLabel();
+            codeBuffer.bpatch(exp4->getNextlist(),exp1->getLabel());
+            codeBuffer.bpatch(exp2->getTruelist(), exp3->getLabel());
+            nextlist = exp2->getFalselist();
+            code = "br label %" + exp1->getLabel();
+            std::string finalLabel = codeBuffer.genLabel();
+            codeBuffer.bpatch(nextlist, finalLabel);
+            codeBuffer.bpatch(exp4->getBreaklist(), finalLabel);
             break;
         }
-
-
         case STATEMENT_L_STATEMENTS_R:
         {
             this->nextlist = exp1->getNextlist();
@@ -472,6 +541,22 @@ StatementClass::StatementClass(STATEMENT_TYPE stsType, BaseClass* exp1, BaseClas
 }
 vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist(){return nextlist;}
 
+
+IfElse::IfElse(ELSE_TYPE elseType, std::string label,
+               BaseClass* exp1, BaseClass* exp2, BaseClass* exp3) :
+               elseType(elseType), label(label),
+               nextlist(vector<pair<int,BranchLabelIndex>>()),
+               breaklist(vector<pair<int,BranchLabelIndex>>()) {
+    if(exp1 != nullptr && exp2 != nullptr && exp3 != nullptr){
+        label = exp2->getLabel();
+        nextlist = codeBuffer.merge(exp1->getNextlist(), exp3->getNextlist());
+        breaklist = exp3->getNextlist();
+    }
+}
+ELSE_TYPE IfElse::getElseType() {return elseType;}
+vector<pair<int,BranchLabelIndex>> IfElse::getNextlist() {return nextlist;}
+vector<pair<int,BranchLabelIndex>> IfElse::getBreaklist() {return breaklist;}
+std::string IfElse::getLabel() {return label;}
 
 CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) : callType(callType), type(type), reg(Register())
 {
@@ -516,7 +601,9 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
                     code += argType + " " + valuesGiven[i] + ", " ;
                 }
             }
-            code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
+            if(typesGiven.size() != 0){
+                code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
+            }
             code += ")";
             codeBuffer.emit(code);
             break;

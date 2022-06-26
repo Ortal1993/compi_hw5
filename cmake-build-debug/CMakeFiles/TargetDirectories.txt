@@ -1,3 +1,3 @@
-C:/Technion/4th_year/Compilation/HW/HW5/compi_hw5/cmake-build-debug/CMakeFiles/hw5.dir
-C:/Technion/4th_year/Compilation/HW/HW5/compi_hw5/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Technion/4th_year/Compilation/HW/HW5/compi_hw5/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+D:/Ortal/Documents/semester g/compi/hw5/cmake-build-debug/CMakeFiles/hw5.dir
+D:/Ortal/Documents/semester g/compi/hw5/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/Ortal/Documents/semester g/compi/hw5/cmake-build-debug/CMakeFiles/rebuild_cache.dir

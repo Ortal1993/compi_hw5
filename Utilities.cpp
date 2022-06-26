@@ -112,6 +112,7 @@ void addVarNewEntry(std::string id, std::string type) {
 }
 
 //adding function to symbolTable
+//the vecArgsType and vecArgsId are already in the right order
 void addFuncNewEntry(std::string id, std::string retType, std::vector<std::string> vecArgsType) {
     TableEntry* entryOfId = symbolTable.findEntryInTable(id);
     if (entryOfId != nullptr) {
@@ -119,13 +120,14 @@ void addFuncNewEntry(std::string id, std::string retType, std::vector<std::strin
         exit(0);
     }
     //need to change the directions of the args in the vector.
-    std::reverse(vecArgsType.begin(), vecArgsType.end()); //now vecArgsTypes is in the regular order
+    //std::reverse(vecArgsType.begin(), vecArgsType.end());
     //push final result to table
     TableScope& topScope = symbolTable.getTopScope();
     topScope.pushEntry(id, 0, retType, true, vecArgsType);
 }
 
 //adding functions arguments to the new function scope
+//the vecArgsType and vecArgsId are already in the right order
 void addFuncArgsToTable(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsId) {
     //should be the same size
     checkValidArgs(vecArgsId); //see description above the function implementation
@@ -133,13 +135,17 @@ void addFuncArgsToTable(std::vector<std::string> vecArgsType, std::vector<std::s
     if (!vecArgsType.empty()){ //case there is at least 1 argument
        TableScope& topScope = symbolTable.getTopScope();
        int argOffset = -1; //ensures that their indexes are negative order.
-       for (size_t i = (vecArgsType.size() - 1); i >= 0; i--) { //need to switch the order.
+       for(size_t i = 0; i < vecArgsType.size(); i++){
+           topScope.pushEntry(vecArgsId[i], argOffset, vecArgsType[i]);
+           argOffset--;
+       }
+       /*for (size_t i = (vecArgsType.size() - 1); i >= 0; i--) { //need to switch the order.
           topScope.pushEntry(vecArgsId[i], argOffset, vecArgsType[i]);
           argOffset--;
           if (i == 0){
               break;
           }
-       }
+       }*/
     }
 }
 
@@ -221,12 +227,13 @@ void checkMainExist() {
     }
 }
 
-void addPrintFunctions() {
+void addPrintFunctionsToTable() {
     std::vector<std::string> printArgs;
-    std::vector<std::string> printiArgs;
     printArgs.push_back("STRING");
-    printiArgs.push_back("INT");
     addFuncNewEntry("print", "VOID", printArgs);
+
+    std::vector<std::string> printiArgs;
+    printiArgs.push_back("INT");
     addFuncNewEntry("printi", "VOID", printiArgs);
 }
 
@@ -291,6 +298,8 @@ void HandleReturn(std::string retType) {
             codeBuffer.emit("ret " + getSizeByType(retType) + " 0");
         }
     }
+    codeBuffer.emit("}");
+    codeBuffer.emit(""); //'New line'
 }
 
 void allocateFuncStack() {
@@ -298,4 +307,26 @@ void allocateFuncStack() {
     code = stackRegister.getRegName() + "= alloca [50 x i32]";
     codeBuffer.emit(code);
     stackRegister.setNewRegName();
+}
+
+void declarePrintFunctions() {
+
+} ///TODO
+
+void defineFuncDecl(std::string retType, std::string id, std::vector<std::string> vecArgsType){
+        std::string code;
+        code = "define " + getSizeByType(retType) + " @" + id + "(";
+        for(int i = 0; i < vecArgsType.size(); i++){
+            code += getSizeByType(vecArgsType[i]) + ", ";
+        }
+        if(vecArgsType.size() != 0){
+            code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
+        }
+        code = + ") {";
+        codeBuffer.emit(code);
+};
+
+void printBuffer(){
+    codeBuffer.printGlobalBuffer();
+    codeBuffer.printCodeBuffer();
 }

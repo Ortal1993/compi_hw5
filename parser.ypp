@@ -39,22 +39,25 @@
 
 %%
 //rules
-Program:    {openScope();
-             addPrintFunctions();}
-            Funcs
+Program:                                      {openScope();
+                                               addPrintFunctionsToTable();
+                                               declarePrintFunctions();}
+            Funcs                              {/*closeScope();*/ ///TO ASK
+                                               printBuffer();}
 ;
 
 Funcs:      /*epsilon*/
             |FuncDecl Funcs
 ;
 
-//TODO: need to create FuncDeclClass in which we add function declaration to global buffer (as we did with string - see tutorial for example)
 FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->getType(),$4->getVecArgsType());
+                                               defineFuncDecl($1->getType(), $2->getId(), $4->getVecArgsType());
                                                allocateFuncStack();}
-                                      LBRACE  {openScope(); setIsReturn(false);
+            LBRACE                            {openScope();
+                                               setIsReturn(false);
                                                addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
-            Statements {HandleReturn($1->getType()); closeScope();}
-            RBRACE
+            Statements RBRACE                 {HandleReturn($1->getType());
+                                               closeScope();}
 ;
 
 RetType:    Type                            {$$ = new RetTypeClass($1->getType());}
@@ -67,15 +70,15 @@ Formals:	 /*epsilon*/                    {$$ = new FormalsClass();}
 
 FormalsList: FormalDecl                     {$$ = new FormalsListClass();
                                              $$->addNewArg($1->getArgType(),$1->getArgID());}
-			|FormalDecl COMMA FormalsList   {$$ = new FormalsListClass($3->getVecArgsType(),$3->getVecArgsID());
+			|FormalDecl COMMA FormalsList   {$$ = new FormalsListClass($3->getVecArgsType(), $3->getVecArgsID());
 			                                 $$->addNewArg($1->getArgType(),$1->getArgID());}
 ;
 
 FormalDecl:	Type ID                         {$$ = new FormalDeclClass($1->getType(),$2->getId()); }
 ;
 
-Statements:	Statement               {$$ = new StatementClass();}
-			|Statements Statement   {$$ = new StatementsClass($2->getNextlist()}
+Statements:	Statement               {$$ = new StatementsClass(STATEMENTS_STATEMENT, $1);}
+			|Statements Statement   {$$ = new StatementsClass(STATEMENTS_STATEMENTS_STATEMENT, $2);}
 ;
 
 Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
@@ -100,22 +103,21 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
             |IF LPAREN Exp RPAREN   {openScope();
                                      checkIfBool($3->getType());}
                       M Statement   {closeScope();
-                                    $$ = new StatementClass(STATEMENT_IF);}
-                      IfElse
+                      IfElse        {$$ = new StatementClass(STATEMENT_IF, $3, $6, %7, %9);}
 			|WHILE LPAREN M Exp RPAREN {openScope();
 			                          checkIfBool($3->getType());
 			                          incWhileCounter();}
 			          M Statement     {closeScope();
-			                          $$ = new StatementClass(STATEMENT_WHILE, $3, $8, $4, $7);
+			                          $$ = new StatementClass(STATEMENT_WHILE, $3, $4, $7, $8);
 			                          decWhileCounter();}
             |LBRACE                  {openScope();}
              Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATS_R, $3);
                                       closeScope();}
 ;
-IfElse:     /*epsilon*/ %prec ASSIGN
+IfElse:     /*epsilon*/ %prec ASSIGN {$$ = new IfElse()}
             |ELSE                    {openScope();}
-            N M Statement            {$$ = new StatementClass(STATEMENT_IF_ELSE);
-                                      closeScope();}
+            N M Statement            {$$ = new IfElse(ELSE_USED, $3, $4, $5);
+                                     closeScope();}
 ;
 
 Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->getId(), $3->getVecArgsType());

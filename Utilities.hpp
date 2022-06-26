@@ -30,7 +30,7 @@ void incWhileCounter();
 void decWhileCounter();
 std::string checkFuncCall(std::string funcId, std::vector<std::string> vecGivenArgsTypes = std::vector<std::string>());
 void checkMainExist();
-void addPrintFunctions();
+void addPrintFunctionsToTable();
 void printScope();
 std::string getSizeByType(std::string type);
 int getOffsetById(std::string id);
@@ -38,4 +38,7 @@ std::vector<std::string> getFuncVecTypes(std::string funcId);
 void setIsReturn(bool status);
 void HandleReturn(std::string retType);
 void allocateFuncStack();
+void declarePrintFunctions();
+void defineFuncDecl();
+void printBuffer();
 #endif //_UTILITIES_
