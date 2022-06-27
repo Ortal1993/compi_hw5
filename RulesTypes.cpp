@@ -664,9 +664,28 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
             for (int i=0; i < typesGiven.size() ; i++) {
                 std::string argType = getSizeByType(typesGiven[i]);
                 if (argType == "BOOL") {
-                    
+                    Register boolValReg;
+                    std::string ifTrueLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
+                    int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                    pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
+                    vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
+
+                    //create false label
+                    std::string ifFalseLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
+                    int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                    pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
+                    vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
+
+                    //create phi calculation
+                    std::string phiLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(patchTrue, phiLabel);
+                    codeBuffer.bpatch(patchFalse, phiLabel);
+                    codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                    code += argType + " " + boolValReg.getRegName() + ", " ;
                 }
-                if (argType != vecFuncTypes[i]) {
+                else if (argType != vecFuncTypes[i]) {
                     Register tempReg;
                     codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
                     code += argType + " " + tempReg.getRegName() + ", " ;
