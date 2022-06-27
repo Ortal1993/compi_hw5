@@ -5,6 +5,9 @@
 
 SymbolTable symbolTable;
 OffsetTable offset;
+CodeBuffer& codeBuffer = CodeBuffer::instance();
+StackScopeRegister stackRegister;
+
 int WhileCounter = 0;
 bool isReturn = false;
 static TableEntry& getCurrFunc();
@@ -260,7 +263,9 @@ std::string getSizeByType(std::string type){
     }else if(type == "BOOL"){
         return "i1";
     }
-    ///void???
+    else { //void
+        return "void";
+    }
 }
 
 int getOffsetById(std::string id){
@@ -304,7 +309,7 @@ void HandleReturn(std::string retType) {
 
 void allocateFuncStack() {
     std::string code;
-    code = stackRegister.getRegName() + "= alloca [50 x i32]";
+    code = stackRegister.getRegName() + " = alloca [50 x i32]";
     codeBuffer.emit(DOUBLE_TAB + code);
     stackRegister.setNewRegName();
 }
@@ -313,8 +318,8 @@ void declarePrintFunctions() {
     std::string code;
     codeBuffer.emitGlobal("declare i32 @printf(i8*, ...)");
     codeBuffer.emitGlobal("declare void @exit(i32)");
-    codeBuffer.emitGlobal("@.int_specifier = constant [4 x i8] c\"%d\0A\00\"");
-    codeBuffer.emitGlobal("@.str_specifier = constant [4 x i8] c\"%s\0A\00\"");
+    codeBuffer.emitGlobal("@.int_specifier = constant [4 x i8] c\"%d\\0A\\00\"");
+    codeBuffer.emitGlobal("@.str_specifier = constant [4 x i8] c\"%s\\0A\\00\"");
     codeBuffer.emit("\n");
 
     codeBuffer.emit("define void @printi(i32) {");
@@ -345,7 +350,7 @@ void defineFuncDecl(std::string retType, std::string id, std::vector<std::string
         if(vecArgsType.size() != 0) {
             code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
         }
-        code = + ") {";
+        code += ") {";
         codeBuffer.emit(code);
 };
 

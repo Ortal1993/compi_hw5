@@ -178,7 +178,7 @@ private:
     vector<pair<int,BranchLabelIndex>> falselist;
 public:
     ExpClass(OP_TYPE opType, std::string type, std::string value = std::string(),
-             BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* opExp = nullptr);
+             BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr, BaseClass* opExp = nullptr, BaseClass* MExp = nullptr);
     ~ExpClass() = default;
     std::string getType() override;
     std::string getValue() override;
@@ -235,7 +235,7 @@ private:
     vector<pair<int,BranchLabelIndex>> nextlist;
     vector<pair<int,BranchLabelIndex>> breaklist;
 public:
-    IfElseClass(ELSE_TYPE elseType = ELSE_UNUSED, std::string label = std::string(),
+    IfElseClass(ELSE_TYPE elseType = ELSE_UNUSED,
     BaseClass* exp1 = nullptr,
            BaseClass* exp2 = nullptr,
            BaseClass* exp3 = nullptr);
@@ -252,7 +252,7 @@ private:
     std::string type;
     Register reg;
 public:
-    CallClass(CALL_TYPE callType,std::string type, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
+    CallClass(CALL_TYPE callType, std::string type, BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
     ~CallClass() = default;
     std::string getType() override;
     std::string getRegName() override;

@@ -1,7 +1,7 @@
 #include "TableEntry.hpp"
 
 TableEntry::TableEntry(std::string id, int offset, std::string type, bool isFunc, std::vector<std::string> argsTypes) :
-                       id(id), offset(offset), type(type), value(value),
+                       id(id), offset(offset), type(type),
                        isFunc(isFunc), argsTypes(argsTypes) {}
 std::string& TableEntry::getId() {
     return id;
