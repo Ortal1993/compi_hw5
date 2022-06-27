@@ -2,6 +2,9 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+
+#define TAB "   "
+
 using namespace std;
 
 bool replace(string& str, const string& from, const string& to, const BranchLabelIndex index);
@@ -15,7 +18,7 @@ CodeBuffer &CodeBuffer::instance() {
 
 string CodeBuffer::genLabel(){
 	std::stringstream label;
-	label << "label_";
+	label << TAB << "label_";
 	label << buffer.size();
 	std::string ret(label.str());
 	label << ":";

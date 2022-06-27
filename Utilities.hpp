@@ -6,6 +6,9 @@
 #include "Register.hpp"
 #include <iostream>
 
+
+const std::string DOUBLE_TAB = "\t\t";
+
 CodeBuffer& codeBuffer = CodeBuffer::instance();
 StackScopeRegister stackRegister;
 
@@ -42,4 +45,5 @@ void declarePrintFunctions();
 void addDivisionByZeroError();
 void defineFuncDecl();
 void printBuffer();
+std::string getCurrFuncType();
 #endif //_UTILITIES_

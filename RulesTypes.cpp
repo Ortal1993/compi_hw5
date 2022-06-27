@@ -64,7 +64,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 int argRegNum = (idOffset*(-1)) - 1;
                 std::string argRegName = "$" + std::to_string(argRegNum);
                 code = valueReg.getRegName() + " = add " + getSizeByType(type) + " " + argRegName + ", 0";
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             else {
                 //local var case
@@ -74,32 +74,31 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 Register addrReg; //will hold the pointer of the value in the stack
                 //need to create pointer for the stack, and special register to save it (stack location register).
                 code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
                 //now we need to load the value to the register we now work with.
                 //there are 2 cases - if the var we work on is not INT, we need to trunc the size first.
                 if(type != "INT") {
                     Register tempReg;
-                    codeBuffer.emit(tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
-                    codeBuffer.emit(valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
+                    codeBuffer.emit(DOUBLE_TAB+ tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                    codeBuffer.emit(DOUBLE_TAB+ valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
                 }
                 else { //can't put in exp reg if the value is boolean!!! not allowed! need to create jump
-                    codeBuffer.emit(valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                    codeBuffer.emit(DOUBLE_TAB + valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
                 }
             }
             //check if boolean
             if (type == "BOOL") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"; //checking if value is truelist
-                codeBuffer.emit(code);
-                code = "br i1 " + tempReg.getRegName() + ", label @, label @";
-                int bufferLocation = codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
+                int bufferLocation = codeBuffer.emit(DOUBLE_TAB + std::string("br i1 ") + tempReg.getRegName() + ", label @, label @");
                 pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
                 this->truelist = codeBuffer.makelist(ifTrue);
                 this->falselist = codeBuffer.makelist(ifFalse);
             }
             else {
-                codeBuffer.emit(reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
+                codeBuffer.emit(DOUBLE_TAB+ reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
             }
 
             break;
@@ -109,9 +108,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             if (type == "BOOL") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = icmp eq i1 " + exp1->getRegName() + ", 1"; //checking if value is truelist
-                codeBuffer.emit(code);
-                code = "br i1 " + tempReg.getRegName() + ", label @, label @";
-                int bufferLocation = codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
+                int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + tempReg.getRegName() + ", label @, label @");
                 pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
                 this->truelist = codeBuffer.makelist(ifTrue);
@@ -120,7 +118,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             else {
                 //exp_reg = add call_reg, 0;
                 code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             break;
         }
@@ -128,14 +126,14 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             //it this case, type is always "INT"
             code = reg.getRegName() + " = add " + getSizeByType(type) + " " + value + ", 0";
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
         case EXP_OP_NUM_B:
         {
             //it this case, type is always "BYTE"
             code = reg.getRegName() + " = add " + getSizeByType(type) + " " + value + ", 0";
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
         case EXP_OP_STRING:
@@ -144,19 +142,19 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             code = exp1->getRegName() + " = internal constant [" + sizeStr + " x i8] c\"" + exp1->getValue() + "\\00\"" ;
             codeBuffer.emitGlobal(code);
             code = reg.getRegName() + " add i8* " + exp1->getRegName() + ", 0";
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
         case EXP_OP_TRUE:
         {
-            int bufferLocation = codeBuffer.emit("br label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
             pair<int,BranchLabelIndex> item = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->truelist = codeBuffer.makelist(item);
             break;
         }
         case EXP_OP_FALSE:
         {
-            int bufferLocation = codeBuffer.emit("br label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
             pair<int,BranchLabelIndex> item = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->falselist = codeBuffer.makelist(item);
             break;
@@ -194,15 +192,15 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     code = tempReg.getRegName() + " = zext i8 " + exp2->getRegName() + " to i32";
                     regExp2 = tempReg.getRegName();
                 }
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             if (opStr == "==") {
                 code = this->reg.getRegName() + " = icmp eq " + getSizeByType(type) + regExp1 + ", " + regExp2;
             } else { //"!="
                 code = this->reg.getRegName() + " = icmp ne " + getSizeByType(type) + regExp1 + ", " + regExp2;
             }
-            codeBuffer.emit(code);
-            int bufferLocation = codeBuffer.emit("br i1 %" + this->reg.getRegName() + ", label @, label @");
+            codeBuffer.emit(DOUBLE_TAB + code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 %" + this->reg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -223,7 +221,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     code = tempReg.getRegName() + " = zext i8 " + exp2->getRegName() + " to i32";
                     regExp2 = tempReg.getRegName();
                 }
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             else {
                 if(exp1->getType() == "BYTE"){
@@ -240,8 +238,8 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             } else { //">="
                 code = this->reg.getRegName() + " = icmp " + signedChar + "ge " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
             }
-            codeBuffer.emit(code);
-            int bufferLocation = codeBuffer.emit("br i1 %" + this->reg.getRegName() + ", label @, label @");
+            codeBuffer.emit(DOUBLE_TAB + code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 %" + this->reg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -262,7 +260,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     code = tempReg.getRegName() + " = zext i8 " + exp2->getRegName() + " to i32";
                     regExp2 = tempReg.getRegName();
                 }
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             if (opStr == "+") {
                 //$t3 = add $t2, $t3
@@ -271,12 +269,12 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 //$t3 = sub $t2, $t3
                 code = this->reg.getRegName() + " = sub " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
             }
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             this->truelist = codeBuffer.merge(exp1->getTruelist(), exp2->getTruelist());
             this->falselist = codeBuffer.merge(exp1->getFalselist(), exp2->getFalselist());
             break;
         }
-        case EXP_OP_MUL:///TO FIX
+        case EXP_OP_MUL:
         {
             std::string regExp1 = exp1->getRegName();
             std::string regExp2 = exp2->getRegName();
@@ -291,7 +289,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     code = tempReg.getRegName() + " = zext i8 " + exp2->getRegName() + " to i32";
                     regExp2 = tempReg.getRegName();
                 }
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             else { // 2 byte or 2 int --> type = type
                 if(exp1->getType() == "BYTE"){
@@ -303,18 +301,34 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 code = this->reg.getRegName() + " = mul " + getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
             }
             else { //division
-                //$t3 = div $t2, $t3
                 //check if dividing by 0:
-                Register zeroReg;
-                //<result> = icmp eq i32 4, 5
-                //br i1 %cond, label %IfEqual, label %IfUnequal
-                codeBuffer.emit(zeroReg.getRegName() + " = icmp eq " + getSizeByType(type) +  " " + exp2->getRegName() + ", 0");
-                int bufferLocation = codeBuffer.emit("br i1 " + zeroReg.getRegName() + ", label @, label @");
-                //TODO: stopped here. need to add call to zero error. by creating true/false list?
+                Register ifzeroReg;
+                codeBuffer.emit(DOUBLE_TAB + ifzeroReg.getRegName() + " = icmp eq " + getSizeByType(type) +  " " + exp2->getRegName() + ", 0");
+                int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + ifzeroReg.getRegName() + ", label @, label @");
+
+                std::string ifZeroLabel = codeBuffer.genLabel();
+                Register zeroErrAddr;
+                codeBuffer.emit(DOUBLE_TAB + zeroErrAddr.getRegName() + " = getelementptr [23 x i8], [23 x i8]* @.errDivByZero, i32 0, i32 0");
+                codeBuffer.emit(DOUBLE_TAB + "call void @print(i8* " + zeroErrAddr.getRegName() + ")");
+                codeBuffer.emit(DOUBLE_TAB + "call void @exit(i32 1)");
+                int finishedDivErr = codeBuffer.emit(DOUBLE_TAB + "br label @");
+
+                std::string isDivLabel = codeBuffer.genLabel();
                 code = this->reg.getRegName() + " = " + signedChar + "div "+ getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
+
+                pair<int,BranchLabelIndex> ifZeroItem =  pair<int,BranchLabelIndex>(bufferLocation, FIRST);
+                vector<pair<int,BranchLabelIndex>> zeroItemList = codeBuffer.makelist(ifZeroItem);
+                codeBuffer.bpatch(zeroItemList, ifZeroLabel);
+
+                pair<int,BranchLabelIndex> isDivItem =  pair<int,BranchLabelIndex>(bufferLocation, SECOND);
+                vector<pair<int,BranchLabelIndex>> divItemList = codeBuffer.makelist(isDivItem);
+                codeBuffer.bpatch(divItemList, isDivLabel);
+
+                pair<int,BranchLabelIndex> isFinishDivErr =  pair<int,BranchLabelIndex>(finishedDivErr, FIRST);
+                vector<pair<int,BranchLabelIndex>> isFinishDivErrList = codeBuffer.makelist(isFinishDivErr);
+                codeBuffer.bpatch(isFinishDivErrList, isDivLabel);
             }
-            //TODO: fit size to byte first!
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             this->truelist = codeBuffer.merge(exp1->getTruelist(), exp2->getTruelist());
             this->falselist = codeBuffer.merge(exp1->getFalselist(), exp2->getFalselist());
             break;
@@ -331,20 +345,22 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             }else{
                 code = this->reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
             }
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             this->truelist = exp1->getTruelist();
             this->falselist = exp1->getFalselist();
         }
         case EXP_OP_L_EXP_R:
         {
-            code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
+            if (type != "BOOL") {
+                code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
+            }
             this->truelist = exp1->getTruelist();
             this->falselist = exp1->getFalselist();
             break;
         }
 
     }
-    codeBuffer.emit(code);
+    codeBuffer.emit(DOUBLE_TAB + code);
 }
 std::string ExpClass::getType() {return type;}
 std::string ExpClass::getValue() {return value;}
@@ -395,57 +411,59 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
     switch (stType) {
         case STATEMENT_ID:
         {
-            ///TODO - label? nextlist? breaklist?
             int idOffset = getOffsetById(exp1->getId());
             std::string idOffsetStr = to_string(idOffset);
             Register addrReg;
             code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             code = "store i32 0, i32* " + addrReg.getRegName();
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
-        case STATEMENT_TYPE_ID_ASS_EXP: ///TODO
+        case STATEMENT_TYPE_ID_ASS_EXP:
         {
-            int idOffset = getOffsetById(exp1->getId());
-            std::string idOffsetStr = to_string(idOffset);
-            Register addrReg;
-            code = addrReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-            codeBuffer.emit(code);
+            std::string storeReg;
+            Register tempReg;
             std::string type = exp2->getType();
-            if(type == "BOOL"){
+            if(type == "BOOL") {
+                //create true label
                 std::string ifTrueLabel = codeBuffer.genLabel();
                 codeBuffer.bpatch(exp2->getTruelist(), ifTrueLabel);
-                code = "br label @";
-                int bufferLocationTrue = codeBuffer.emit(code);
-                pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocationTrue, FIRST);
+                int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                pair<int,BranchLabelIndex> isTrue = pair<int,BranchLabelIndex>(bufferLocationTrue, FIRST);
+                vector<pair<int,BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
 
+                //create false label
                 std::string ifFalseLabel = codeBuffer.genLabel();
                 codeBuffer.bpatch(exp2->getFalselist(), ifFalseLabel);
-                code = "br label @";
-                int bufferLocationFalse = codeBuffer.emit(code);
-                pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocationFalse, FIRST);
+                int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                pair<int,BranchLabelIndex> isFalse = pair<int,BranchLabelIndex>(bufferLocationFalse, FIRST);
+                vector<pair<int,BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
 
-                vector<pair<int,BranchLabelIndex>> branchesToPatch;
-                branchesToPatch.push_back(ifTrue);
-                branchesToPatch.push_back(ifFalse);
-                std::string finalLabel = codeBuffer.genLabel();
-                codeBuffer.bpatch(branchesToPatch, finalLabel);
-
-                ///TO ASK
+                //create phi calculation
+                std::string phiLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(patchTrue, phiLabel);
+                codeBuffer.bpatch(patchFalse, phiLabel);
+                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                storeReg = tempReg.getRegName();
 
             }
-            if (type != "INT") {
-                Register tempReg;
+            else if (type == "BYTE") {
                 code = tempReg.getRegName() + " = zext " + getSizeByType(type) + " " + exp2->getRegName() + " to i32";
-                codeBuffer.emit(code);
-                code = "store i32 " + tempReg.getRegName() + ", i32* " + addrReg.getRegName();
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
+                storeReg = tempReg.getRegName();
             }
             else {
-                code = "store i32 " + exp2->getRegName() + ", i32* " + addrReg.getRegName();
-                codeBuffer.emit(code);
+                storeReg = exp2->getRegName();
             }
+
+            int idOffset = getOffsetById(exp1->getId());
+            std::string idOffsetStr = to_string(idOffset);
+            Register addrToStoreReg;
+            code = addrToStoreReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+            codeBuffer.emit(DOUBLE_TAB + code);
+            code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
+            codeBuffer.emit(DOUBLE_TAB + code);
 
             break;
         }
@@ -465,23 +483,60 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             //nothing to be done... all done on STATEMENT->CALL->in callClass we add code to LLVM.
             break;
         }
-        case STATEMENT_RET: //TODO: do we need to add genLabel after every 'ret' and 'goto' command?
+        case STATEMENT_RET:
         {
             setIsReturn(true);
             code = "ret void";
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
+            codeBuffer.genLabel();
             break;
         }
-        case STATEMENT_RET_EXP: //TODO: do we need to add genLabel after every 'ret' and 'goto' command?
+        case STATEMENT_RET_EXP:
         {
+            //handle boolean return
+            std::string retReg;
+            Register tempReg;
+            std::string funcRetType = getCurrFuncType();
+            std::string type = exp1->getType();
+            if(type == "BOOL") {
+                //create true label
+                std::string ifTrueLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
+                int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
+                vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
+
+                //create false label
+                std::string ifFalseLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
+                int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
+                vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
+
+                //create phi calculation
+                std::string phiLabel = codeBuffer.genLabel();
+                codeBuffer.bpatch(patchTrue, phiLabel);
+                codeBuffer.bpatch(patchFalse, phiLabel);
+                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                retReg = tempReg.getRegName();
+            }
+            else if (type != funcRetType) {
+                code = tempReg.getRegName() + " = zext " + getSizeByType(type) + " " + exp1->getRegName() + " to i32";
+                codeBuffer.emit(DOUBLE_TAB + code);
+                retReg = tempReg.getRegName();
+            }
+            else {
+                retReg = exp1->getRegName();
+            }
             setIsReturn(true);
-            codeBuffer.emit("ret " + getSizeByType(exp1->getType()) + " " + exp1->getRegName());
+            codeBuffer.emit(DOUBLE_TAB + "ret " + getSizeByType(type) + " " + retReg);
+            codeBuffer.genLabel();
             break;
         }
         case STATEMENT_BREAK:
         {
             code = "br label @";
-            int bufferLocation = codeBuffer.emit(code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + code);
             pair<int,BranchLabelIndex> ifBreak = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->breaklist = codeBuffer.makelist(ifBreak);
             break;
@@ -489,20 +544,19 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         case STATEMENT_CONTINUE:
         {
             code = "br label @";
-            int bufferLocation = codeBuffer.emit(code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + code);
             pair<int,BranchLabelIndex> ifContinue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->nextlist = codeBuffer.makelist(ifContinue);
             break;
         }
-        case STATEMENT_IF://TODO: do we need to add genLabel after every 'ret' and 'goto' command?
+        case STATEMENT_IF:
         {
             //exp1 -> (if) exp, exp2 -> (if) M, exp3 ->  S1, exp4 -> ifElse
             if(exp4->getElseType() == ELSE_UNUSED){
                 codeBuffer.bpatch(exp1->getTruelist(), exp2->getLabel());
                 nextlist = codeBuffer.merge(exp1->getFalselist(), exp3->getNextlist());
 
-                code = "br label @"; //generating the final jump to the label of the next block
-                int bufferLocation = codeBuffer.emit(code);
+                int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @"); //generating the final jump to the label of the next block
                 pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 nextlist = codeBuffer.merge(this->nextlist, codeBuffer.makelist(endBlockPair));
                 std::string endOfBlock = codeBuffer.genLabel();
@@ -514,8 +568,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 codeBuffer.bpatch(exp1->getFalselist(), exp4->getLabel());
                 nextlist = codeBuffer.merge(exp3->getNextlist(), exp4->getNextlist());
 
-                code = "br label @";
-                int bufferLocation = codeBuffer.emit(code);
+                int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
                 pair<int,BranchLabelIndex> endBlockPair = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
                 std::string endOfBlock = codeBuffer.genLabel();
@@ -581,12 +634,12 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
             //in this case, we simply call the func and we don't wait for any ret value
             if (type == "VOID") {
                 code = "call " + getSizeByType(type) + " @" + exp1->getId() + "()";
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             //in this case, we do wait for a ret value. Call will save it for EXP later
             else {
                 code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "()";
-                codeBuffer.emit(code);
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             break;
         }
@@ -608,7 +661,7 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
                 std::string argType = getSizeByType(typesGiven[i]);
                 if (argType != vecFuncTypes[i]) {
                     Register tempReg;
-                    codeBuffer.emit(tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
+                    codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
                     code += argType + " " + tempReg.getRegName() + ", " ;
                 }
                 else {
@@ -619,7 +672,7 @@ CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, Bas
                 code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
             }
             code += ")";
-            codeBuffer.emit(code);
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
         default:
@@ -636,7 +689,7 @@ M_Class::M_Class() : label(codeBuffer.genLabel()){}
 std::string M_Class::getLabel() {return label;}
 
 N_Class::N_Class(){
-    int bufferLocation = codeBuffer.emit("br label @");
+    int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
     pair<int,BranchLabelIndex> item = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
     nextlist = codeBuffer.makelist(item);
 }

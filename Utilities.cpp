@@ -183,8 +183,8 @@ void openScope() {
 }
 
 void closeScope() {
-  output::endScope();
-  printScope();
+  //output::endScope();
+  //printScope();
   symbolTable.popScope();
   offset.popOffsetScope();
 }
@@ -288,24 +288,24 @@ void setIsReturn(bool status) {
 
 void HandleReturn(std::string retType) {
     if (isReturn == true) {
+        codeBuffer.emit("}");
         return;
     }
+
+    if (retType == "VOID") {
+        codeBuffer.emit(DOUBLE_TAB + "ret void");
+    }
     else {
-        if (retType == "VOID") {
-            codeBuffer.emit("ret void");
-        }
-        else {
-            codeBuffer.emit("ret " + getSizeByType(retType) + " 0");
-        }
+        codeBuffer.emit(DOUBLE_TAB + "ret " + getSizeByType(retType) + " 0");
     }
     codeBuffer.emit("}");
-    codeBuffer.emit(""); //'New line'
+    codeBuffer.genLabel(); //after each return
 }
 
 void allocateFuncStack() {
     std::string code;
     code = stackRegister.getRegName() + "= alloca [50 x i32]";
-    codeBuffer.emit(code);
+    codeBuffer.emit(DOUBLE_TAB + code);
     stackRegister.setNewRegName();
 }
 
@@ -318,22 +318,22 @@ void declarePrintFunctions() {
     codeBuffer.emit("\n");
 
     codeBuffer.emit("define void @printi(i32) {");
-    codeBuffer.emit("%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0");
-    codeBuffer.emit("call i32 (i8*, ...) @printf(i8* %spec_ptr, i32 %0)");
-    codeBuffer.emit("ret void");
+    codeBuffer.emit(DOUBLE_TAB + "%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0");
+    codeBuffer.emit(DOUBLE_TAB + "call i32 (i8*, ...) @printf(i8* %spec_ptr, i32 %0)");
+    codeBuffer.emit(DOUBLE_TAB + "ret void");
     codeBuffer.emit("}");
     codeBuffer.emit("\n");
 
     codeBuffer.emit("define void @print(i8*) {");
-    codeBuffer.emit("%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0");
-    codeBuffer.emit("call i32 (i8*, ...) @printf(i8* %spec_ptr, i8* %0)");
-    codeBuffer.emit("ret void");
+    codeBuffer.emit(DOUBLE_TAB + "%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0");
+    codeBuffer.emit(DOUBLE_TAB + "call i32 (i8*, ...) @printf(i8* %spec_ptr, i8* %0)");
+    codeBuffer.emit(DOUBLE_TAB + "ret void");
     codeBuffer.emit("}");
     codeBuffer.emit("\n");
 }
 
 void addDivisionByZeroError() {
-    codeBuffer.emitGlobal("@.errDivByZero = internal constant [22 x i8] c\"Error division by zero\"");
+    codeBuffer.emitGlobal("@.errDivByZero = internal constant [23 x i8] c\"Error division by zero\\00\"");
 }
 
 void defineFuncDecl(std::string retType, std::string id, std::vector<std::string> vecArgsType){
@@ -352,4 +352,8 @@ void defineFuncDecl(std::string retType, std::string id, std::vector<std::string
 void printBuffer(){
     codeBuffer.printGlobalBuffer();
     codeBuffer.printCodeBuffer();
+}
+
+std::string getCurrFuncType() {
+    return getCurrFunc().getType();
 }
