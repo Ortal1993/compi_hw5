@@ -372,7 +372,10 @@ vector<pair<int,BranchLabelIndex>> ExpClass::getTruelist() {return truelist;}
 vector<pair<int,BranchLabelIndex>> ExpClass::getFalselist(){ return falselist;}
 
 ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsValue) :
-                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue) {}
+                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue)
+{
+    //for every boolean we add - use phi
+}
 std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
 void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
