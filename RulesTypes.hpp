@@ -220,7 +220,8 @@ private:
 public:
     StatementClass(STATEMENT_TYPE stType,
                    BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr,
-                   BaseClass* exp3 = nullptr, BaseClass* exp4 = nullptr);
+                   BaseClass* exp3 = nullptr, BaseClass* exp4 = nullptr,
+				   BaseClass* exp5 = nullptr);
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;

@@ -302,9 +302,9 @@ void HandleReturn(std::string retType) {
 void allocateFuncStack() {
 	codeBuffer.genLabel();
     std::string code;
+	stackRegister.setNewRegName();
     code = stackRegister.getRegName() + " = alloca [50 x i32]";
     codeBuffer.emit(DOUBLE_TAB + code);
-    stackRegister.setNewRegName();
 }
 
 void declarePrintFunctions() {

@@ -104,11 +104,11 @@ Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
                                      checkIfBool($3->getType());}
                       M Statement   {closeScope();}
                       IfElse        {$$ = new StatementClass(STATEMENT_IF, $3, $6, $7, $9);}
-			|WHILE LPAREN M Exp RPAREN {openScope();
-			                          checkIfBool($4->getType());
+			|N WHILE LPAREN M Exp RPAREN {openScope();
+			                          checkIfBool($5->getType());
 			                          incWhileCounter();}
 			          M Statement     {closeScope();
-			                          $$ = new StatementClass(STATEMENT_WHILE, $3, $4, $7, $8);
+			                          $$ = new StatementClass(STATEMENT_WHILE, $1, $4, $5, $8, $9);
 			                          decWhileCounter();}
             |LBRACE                  {openScope();}
              Statements RBRACE       {$$ = new StatementClass(STATEMENT_L_STATEMENTS_R, $3);

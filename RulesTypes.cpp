@@ -186,7 +186,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             std::string regExp1 = exp1->getRegName();
             std::string regExp2 = exp2->getRegName();
-			std::string typeToCompare = exp1->getType();
+			std::string typeToCompare = getSizeByType(exp1->getType());
             if(exp1->getType() != exp2->getType()){
                 Register tempReg;
                 if(exp1->getType() == "BYTE"){
@@ -217,6 +217,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             std::string regExp1 = exp1->getRegName();
             std::string regExp2 = exp2->getRegName();
             std::string signedChar = "s";
+			std::string typeToCompare = getSizeByType(exp1->getType());
             if(exp1->getType() != exp2->getType()){
                 Register tempReg;
                 if(exp1->getType() == "BYTE"){
@@ -227,6 +228,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     regExp2 = tempReg.getRegName();
                 }
                 codeBuffer.emit(DOUBLE_TAB + code);
+				typeToCompare = "i32";
             }
             else {
                 if(exp1->getType() == "BYTE"){
@@ -235,16 +237,16 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             }
 
             if (opStr == "<") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "lt " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
+                code = this->reg.getRegName() + " = icmp " + signedChar + "lt " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else if (opStr == ">") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "gt " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
+                code = this->reg.getRegName() + " = icmp " + signedChar + "gt " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else if (opStr == "<=") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "le " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
+                code = this->reg.getRegName() + " = icmp " + signedChar + "le " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else { //">="
-                code = this->reg.getRegName() + " = icmp " + signedChar + "ge " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
+                code = this->reg.getRegName() + " = icmp " + signedChar + "ge " + typeToCompare + " " + regExp1 + ", " + regExp2;
             }
             codeBuffer.emit(DOUBLE_TAB + code);
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 %" + this->reg.getRegName() + ", label @, label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + this->reg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -438,7 +440,7 @@ vector<pair<int,BranchLabelIndex>> StatementsClass::getBreaklist(){ return break
 
 StatementClass::StatementClass(STATEMENT_TYPE stType,
                                BaseClass* exp1, BaseClass* exp2,
-                               BaseClass* exp3, BaseClass* exp4) :
+                               BaseClass* exp3, BaseClass* exp4, BaseClass* exp5) :
                                 stType(stType),
                                 nextlist(vector<pair<int,BranchLabelIndex>>()),
                                 breaklist(vector<pair<int,BranchLabelIndex>>())
@@ -623,13 +625,15 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_WHILE:
         {
-            codeBuffer.bpatch(exp4->getNextlist(),exp1->getLabel());
-            codeBuffer.bpatch(exp2->getTruelist(), exp3->getLabel());
-            nextlist = exp2->getFalselist();
-            code = "br label %" + exp1->getLabel();
+            codeBuffer.bpatch(exp1->getNextlist(),exp2->getLabel());
+			codeBuffer.bpatch(exp5->getNextlist(),exp2->getLabel());
+            codeBuffer.bpatch(exp3->getTruelist(), exp4->getLabel());
+            nextlist = exp3->getFalselist();
+            code = "br label %" + exp2->getLabel();
+			codeBuffer.emit(DOUBLE_TAB + code);
             std::string finalLabel = codeBuffer.genLabel();
             codeBuffer.bpatch(nextlist, finalLabel);
-            codeBuffer.bpatch(exp4->getBreaklist(), finalLabel);
+            codeBuffer.bpatch(exp5->getBreaklist(), finalLabel);
             break;
         }
         case STATEMENT_L_STATEMENTS_R:

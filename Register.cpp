@@ -25,9 +25,7 @@ int StackScopeRegister::counter = 0;
 
 std::string StackScopeRegister::regName = std::string();
 
-StackScopeRegister::StackScopeRegister() {
-    setNewRegName();
-}
+StackScopeRegister::StackScopeRegister() {}
 
 std::string StackScopeRegister::getRegName() {
     return this->regName;
