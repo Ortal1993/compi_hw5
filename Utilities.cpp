@@ -122,8 +122,7 @@ void addFuncNewEntry(std::string id, std::string retType, std::vector<std::strin
         output::errorDef(yylineno, id);
         exit(0);
     }
-    //need to change the directions of the args in the vector.
-    //std::reverse(vecArgsType.begin(), vecArgsType.end());
+
     //push final result to table
     TableScope& topScope = symbolTable.getTopScope();
     topScope.pushEntry(id, 0, retType, true, vecArgsType);
@@ -142,13 +141,6 @@ void addFuncArgsToTable(std::vector<std::string> vecArgsType, std::vector<std::s
            topScope.pushEntry(vecArgsId[i], argOffset, vecArgsType[i]);
            argOffset--;
        }
-       /*for (size_t i = (vecArgsType.size() - 1); i >= 0; i--) { //need to switch the order.
-          topScope.pushEntry(vecArgsId[i], argOffset, vecArgsType[i]);
-          argOffset--;
-          if (i == 0){
-              break;
-          }
-       }*/
     }
 }
 
@@ -206,7 +198,6 @@ std::string checkFuncCall(std::string funcId, std::vector<std::string> vecGivenA
         exit(0);
     }
     std::vector<std::string> vecFuncTypes = funcEntry->getVecArgsTypes(); //already reversed!!!
-    //std::reverse(vecGivenArgsTypes.begin(), vecGivenArgsTypes.end());
 
     if (vecFuncTypes.size() != vecGivenArgsTypes.size()) {
         output::errorPrototypeMismatch(yylineno, funcId, vecFuncTypes);

@@ -70,9 +70,8 @@ public:
     virtual std::string getArgType() {std::cout << "error with getArgType()!" << std::endl;}
     virtual std::string getArgID() {std::cout << "error with getArgID()!" << std::endl;}
     virtual std::string getValue() {std::cout << "error with getValue()!" << std::endl;}
-    virtual int getQuad() {std::cout << "error with getQuad()!" << std::endl;}
     virtual std::string getLabel() {std::cout << "error with getLabel()!" << std::endl;}
-    virtual void addNewArgType(std::string argType, std::string argValue) {std::cout << "error with addNewArgType()!" << std::endl;}
+    virtual void addNewArgToExpList(std::string argType, BaseClass* exp1) {std::cout << "error with addNewArgToExpList()!" << std::endl;}
     virtual std::string getRegName() {std::cout << "error with getRegName()!" << std::endl;}
     virtual std::string getOpStr() {std::cout << "error with getOpStr()!" << std::endl;}
     virtual OP_TYPE getOpType() {std::cout << "error with getOpType()!" << std::endl;}
@@ -104,12 +103,10 @@ public:
 class IDClass : public BaseClass {
 private:
     std::string id;
-    int quad;
 public:
-    IDClass(std::string id, int quad);
+    IDClass(std::string id);
     ~IDClass() = default;
     std::string getId() override;
-    int getQuad() override;
 };
 
 class StringClass : public BaseClass {
@@ -172,7 +169,7 @@ class ExpClass : public BaseClass {
 private:
     OP_TYPE opType;
     std::string type;
-    std::string value;
+    std::string value; //name of idClass, value of numClass, not relavent for HW5, relevant for HW3
     Register reg;
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
@@ -194,11 +191,11 @@ private:
     std::vector<std::string> vecArgsValue; //contains the reg names where the values are held.
 public:
     ExpListClass(std::vector<std::string> vecArgsType = std::vector<std::string>(),
-                std::vector<std::string> vecArgValues = std::vector<std::string>());
+                std::vector<std::string> vecArgsValue = std::vector<std::string>());
     ~ExpListClass() = default;
     std::vector<std::string> getVecArgsType() override;
     std::vector<std::string> getVecArgsValue() override;
-    void addNewArgType(std::string argType, std::string argValue) override;
+    void addNewArgToExpList(std::string argType, BaseClass* exp1) override;
 };
 
 class StatementsClass : public BaseClass {

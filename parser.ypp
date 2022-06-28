@@ -127,9 +127,9 @@ Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->ge
 ;
 
 ExpList:	Exp                     {$$ = new ExpListClass();
-                                    $$->addNewArgType($1->getType(), $1->getRegName());}
+                                    $$->addNewArgToExpList($1->getType(), $1);}
 			|Exp COMMA ExpList      {$$ = new ExpListClass($3->getVecArgsType());
-			                        $$->addNewArgType($1->getType(), $1->getRegName());}
+			                        $$->addNewArgToExpList($1->getType(), $1);}
 ;
 
 Type:	    INT                     {$$ = new TypeClass("INT");}

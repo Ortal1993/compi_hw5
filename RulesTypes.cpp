@@ -10,9 +10,8 @@ std::string RetTypeClass::getType() {return type;}
 TypeClass::TypeClass(std::string type) : type(type) {}
 std::string TypeClass::getType() {return type;}
 
-IDClass::IDClass(std::string id, int quad) : id(id), quad(quad) {}
+IDClass::IDClass(std::string id, int quad) : id(id) {}
 std::string IDClass::getId() {return id;}
-int IDClass::getQuad() {return quad;}
 
 StringClass::StringClass(std::string value) : strReg(StringRegister()), value(value) {
      this->value = value.substr(1, value.size()-2);
@@ -106,7 +105,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
 
             break;
         }
-        case EXP_OP_CALL:
+        case EXP_OP_CALL://exp1 -> callClass object
         {
             if (type == "BOOL") {
                 Register tempReg;
@@ -119,7 +118,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 this->falselist = codeBuffer.makelist(ifFalse);
             }
             else {
-                //exp_reg = add call_reg, 0;
+                //example: exp_reg = add call_reg, 0;
                 code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
                 codeBuffer.emit(DOUBLE_TAB + code);
             }
@@ -372,15 +371,42 @@ vector<pair<int,BranchLabelIndex>> ExpClass::getTruelist() {return truelist;}
 vector<pair<int,BranchLabelIndex>> ExpClass::getFalselist(){ return falselist;}
 
 ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsValue) :
-                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue)
-{
-    //for every boolean we add - use phi
-}
+                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue){}
 std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
-void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
-    vecArgsType.push_back(argType);
-    vecArgsValue.push_back(argValue);
+void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
+    if(argType == "BOOL"){
+
+    }else{
+        vecArgsType.insert(vecArgsType.begin(), argType);
+        vecArgsValue.insert(vecArgsValue.begin(), exp1->getRegName());
+    }
+
+    std::string code;
+    if (argType == "BOOL") {
+        Register boolValReg; //because bool value isn't stored in a register we create a new register in order to pass the value
+        //create true label
+        std::string ifTrueLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
+        int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+        pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
+        vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
+
+        //create false label
+        std::string ifFalseLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
+        int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+        pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
+        vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
+
+        //create phi calculation
+        std::string phiLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(patchTrue, phiLabel);
+        codeBuffer.bpatch(patchFalse, phiLabel);
+        codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+        vecArgsType.insert(vecArgsType.begin(), argType);
+        vecArgsValue.insert(vecArgsValue.begin(), boolValReg.getRegName());
+    }
 }
 
 StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
@@ -636,71 +662,41 @@ CallClass::CallClass(CALL_TYPE callType, std::string type, BaseClass* exp1, Base
 callType(callType), type(type), reg(Register())
 {
     std::string code;
+    if (type == "VOID") {
+        code = "call " + getSizeByType(type) + " @" + exp1->getId() + "(";
+    }
+        //in this case, we do wait for a ret value. Call will save it for EXP later
+    else {
+        code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "("; //if bool it is ok to pass in register
+    }
+
     switch (callType) {
         case CALL_ID: //the ID here is the func name
         {
             //in this case, we simply call the func and we don't wait for any ret value
-            if (type == "VOID") {
-                code = "call " + getSizeByType(type) + " @" + exp1->getId() + "()";
-                codeBuffer.emit(DOUBLE_TAB + code);
-            }
-            //in this case, we do wait for a ret value. Call will save it for EXP later
-            else {
-                code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "()";
-                codeBuffer.emit(DOUBLE_TAB + code);
-            }
+            codeBuffer.emit(DOUBLE_TAB + code + ")");
             break;
         }
+
         case CALL_ID_EXPLIST:
-        {
+        {//exp1-> id of func, exp2 -> expList
             std::vector<std::string> typesGiven = exp2->getVecArgsType();
-            std::vector<std::string> valuesGiven = exp2->getVecArgsValue();
-            std::reverse(typesGiven.begin(), typesGiven.end());
-            std::reverse(valuesGiven.begin(), valuesGiven.end());
-            std::vector<std::string> vecFuncTypes = getFuncVecTypes(exp1->getId()); //already reversed!!!
+            std::vector<std::string> valuesGiven = exp2->getVecArgsValue(); //contain regNames
+            std::vector<std::string> typesRequested = getFuncVecTypes(exp1->getId()); //in case the actual arguments that are given are bytes and the requested arguments are int - need to do zext
 
-            if (type != "VOID") {
-                code = reg.getRegName() + " = call " + getSizeByType(type) + " @" + exp1->getId() + "(";
-            }
-            else {
-                code = "call " + getSizeByType(type) + " @" + exp1->getId() + "(";;
-            }
             for (int i=0; i < typesGiven.size() ; i++) {
-                std::string argType = getSizeByType(typesGiven[i]);
-                if (argType == "BOOL") {
-                    Register boolValReg;
-                    std::string ifTrueLabel = codeBuffer.genLabel();
-                    codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
-                    int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
-                    pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
-                    vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
-
-                    //create false label
-                    std::string ifFalseLabel = codeBuffer.genLabel();
-                    codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
-                    int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
-                    pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
-                    vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
-
-                    //create phi calculation
-                    std::string phiLabel = codeBuffer.genLabel();
-                    codeBuffer.bpatch(patchTrue, phiLabel);
-                    codeBuffer.bpatch(patchFalse, phiLabel);
-                    codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
-                    code += argType + " " + boolValReg.getRegName() + ", " ;
-                }
-                else if (argType != vecFuncTypes[i]) {
+                if (typesGiven[i] != typesRequested[i]) {//argSize is byte and typeRequested is int
                     Register tempReg;
                     codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
-                    code += argType + " " + tempReg.getRegName() + ", " ;
+                    code += getSizeByType(typesRequested[i]) + " " + tempReg.getRegName() + ", " ;
                 }
                 else {
-                    code += argType + " " + valuesGiven[i] + ", " ;
+                    code += getSizeByType(typesGiven[i]) + " " + valuesGiven[i] + ", " ;
                 }
             }
-            if(typesGiven.size() != 0){
-                code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
-            }
+
+            //there is no chance the size is zero because it is not CALL_ID
+            code = code.substr(0,code.size() - 2); //remove the last ", " from last iteration
             code += ")";
             codeBuffer.emit(DOUBLE_TAB + code);
             break;
