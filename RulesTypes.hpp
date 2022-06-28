@@ -205,7 +205,8 @@ private:
     vector<pair<int,BranchLabelIndex>> breaklist;
 public:
     StatementsClass(STATEMENTS_TYPE stsType,
-                    BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr);
+                    BaseClass* exp1 = nullptr, 
+					BaseClass* exp2 = nullptr);
     ~StatementsClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;

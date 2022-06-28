@@ -77,7 +77,7 @@ FormalsList: FormalDecl                     {$$ = new FormalsListClass();
 FormalDecl:	Type ID                         {$$ = new FormalDeclClass($1->getType(),$2->getId()); }
 ;
 
-Statements:	Statement               {$$ = new StatementsClass(STATEMENTS_STATEMENT, $1);}
+Statements:  Statement             {$$ = new StatementsClass(STATEMENTS_STATEMENT, $1);}
 			|Statements Statement   {$$ = new StatementsClass(STATEMENTS_STATEMENTS_STATEMENT, $1, $2);}
 ;
 
@@ -139,7 +139,7 @@ Type:	    INT                     {$$ = new TypeClass("INT");}
 
 Exp: 	    ID                      {std::string type = getTypeById($1->getId());
                                     $$ = new ExpClass(EXP_OP_ID, type, std::string(""), $1);}
-    		|Call                   {$$ = new ExpClass(EXP_OP_CALL, $1->getType());}
+    		|Call                   {$$ = new ExpClass(EXP_OP_CALL, $1->getType(), std::string(""), $1);}
     		|NUM                    {$$ = new ExpClass(EXP_OP_NUM, "INT", $1->getValue());}
     		|NUM B                  {checkIfBValid($1->getValue());
     		                        $$ = new ExpClass(EXP_OP_NUM_B, "BYTE", $1->getValue());}

@@ -15,6 +15,12 @@ std::string Register::getRegName() {
     return this->regName;
 }
 
+int Register::getCounter(){
+    return this->counter;
+}
+
+///////////////////////////////////////////////////
+
 int StackScopeRegister::counter = 0;
 
 std::string StackScopeRegister::regName = std::string();
@@ -36,6 +42,7 @@ void StackScopeRegister::incCounter() {
     this->counter++;
 }
 
+/////////////////////////////////////////////////////////
 
 int StringRegister::counter = 0;
 

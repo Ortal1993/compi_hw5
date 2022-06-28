@@ -253,7 +253,9 @@ std::string getSizeByType(std::string type){
         return "i8";
     }else if(type == "BOOL"){
         return "i1";
-    }
+    }else if(type == "STRING"){
+		return "i8*";
+	}
     else { //void
         return "void";
     }
@@ -295,10 +297,10 @@ void HandleReturn(std::string retType) {
         codeBuffer.emit(DOUBLE_TAB + "ret " + getSizeByType(retType) + " 0");
     }
     codeBuffer.emit("}");
-    codeBuffer.genLabel(); //after each return
 }
 
 void allocateFuncStack() {
+	codeBuffer.genLabel();
     std::string code;
     code = stackRegister.getRegName() + " = alloca [50 x i32]";
     codeBuffer.emit(DOUBLE_TAB + code);

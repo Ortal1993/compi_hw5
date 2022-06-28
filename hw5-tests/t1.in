@@ -15,7 +15,7 @@ void main() {
         print("true");
     }
 
-    if(false or false and  true)
+    if(true)
     {
         print("true");
     }

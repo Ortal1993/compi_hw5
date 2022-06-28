@@ -13,6 +13,7 @@ public:
     ~Register() = default;
     void incCounter();
     std::string getRegName();
+    int getCounter();
 };
 
 //there will be only 1 of this. every time we create an object of this class and call getName we will receive the correct reg.

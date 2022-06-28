@@ -10,7 +10,7 @@ std::string RetTypeClass::getType() {return type;}
 TypeClass::TypeClass(std::string type) : type(type) {}
 std::string TypeClass::getType() {return type;}
 
-IDClass::IDClass(std::string id, int quad) : id(id) {}
+IDClass::IDClass(std::string id) : id(id) {}
 std::string IDClass::getId() {return id;}
 
 StringClass::StringClass(std::string value) : strReg(StringRegister()), value(value) {
@@ -64,7 +64,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 //argument case
                 //exp_reg = add %(the offset of argument * -1 (-1)), 0;
                 int argRegNum = (idOffset*(-1)) - 1;
-                std::string argRegName = "$" + std::to_string(argRegNum);
+                std::string argRegName = "%" + std::to_string(argRegNum);
                 code = valueReg.getRegName() + " = add " + getSizeByType(type) + " " + argRegName + ", 0";
                 codeBuffer.emit(DOUBLE_TAB + code);
             }
@@ -81,14 +81,14 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 //there are 2 cases - if the var we work on is not INT, we need to trunc the size first.
                 if(type != "INT") {
                     Register tempReg;
-                    codeBuffer.emit(DOUBLE_TAB+ tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
-                    codeBuffer.emit(DOUBLE_TAB+ valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
+                    codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
+                    codeBuffer.emit(DOUBLE_TAB + valueReg.getRegName() + " = trunc i32 " + tempReg.getRegName() + " to " + getSizeByType(type)); //check if logic OK.
                 }
                 else { //can't put in exp reg if the value is boolean!!! not allowed! need to create jump
                     codeBuffer.emit(DOUBLE_TAB + valueReg.getRegName() + " = load i32, i32* " + addrReg.getRegName()); //load val from ptr.
                 }
             }
-            //check if boolean
+
             if (type == "BOOL") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = icmp eq i1 " + valueReg.getRegName() + ", 1"; //checking if value is truelist
@@ -100,14 +100,13 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 this->falselist = codeBuffer.makelist(ifFalse);
             }
             else {
-                codeBuffer.emit(DOUBLE_TAB+ reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
+                codeBuffer.emit(DOUBLE_TAB + reg.getRegName() + " = add " + getSizeByType(type) + " " + valueReg.getRegName() + ", 0");
             }
-
             break;
         }
         case EXP_OP_CALL://exp1 -> callClass object
         {
-            if (type == "BOOL") {
+			if (type == "BOOL") {
                 Register tempReg;
                 code = tempReg.getRegName() + " = icmp eq i1 " + exp1->getRegName() + ", 1"; //checking if value is truelist
                 codeBuffer.emit(DOUBLE_TAB + code);
@@ -118,10 +117,12 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 this->falselist = codeBuffer.makelist(ifFalse);
             }
             else {
+				//std::cout<< "in exp call in else" << std::endl;
                 //example: exp_reg = add call_reg, 0;
                 code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
                 codeBuffer.emit(DOUBLE_TAB + code);
             }
+
             break;
         }
         case EXP_OP_NUM:
@@ -140,10 +141,10 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         }
         case EXP_OP_STRING:
         {
-            std::string sizeStr =  std::to_string(exp1->getValue().size());
+            std::string sizeStr =  std::to_string(exp1->getValue().size() + 1);
             code = exp1->getRegName() + " = internal constant [" + sizeStr + " x i8] c\"" + exp1->getValue() + "\\00\"" ;
             codeBuffer.emitGlobal(code);
-            code = reg.getRegName() + " add i8* " + exp1->getRegName() + ", 0";
+            code = reg.getRegName() + " = getelementptr [" + sizeStr + " x i8], [" + sizeStr + " x i8]* " + exp1->getRegName() + ", i32 0, i32 0";
             codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
@@ -185,6 +186,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             std::string regExp1 = exp1->getRegName();
             std::string regExp2 = exp2->getRegName();
+			std::string typeToCompare = exp1->getType();
             if(exp1->getType() != exp2->getType()){
                 Register tempReg;
                 if(exp1->getType() == "BYTE"){
@@ -195,14 +197,15 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     regExp2 = tempReg.getRegName();
                 }
                 codeBuffer.emit(DOUBLE_TAB + code);
+				typeToCompare = "i32";
             }
-            if (opStr == "==") {
-                code = this->reg.getRegName() + " = icmp eq " + getSizeByType(type) + regExp1 + ", " + regExp2;
+            if (opStr == "==") {//can't be bool
+                code = this->reg.getRegName() + " = icmp eq " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else { //"!="
-                code = this->reg.getRegName() + " = icmp ne " + getSizeByType(type) + regExp1 + ", " + regExp2;
+                code = this->reg.getRegName() + " = icmp ne " + typeToCompare + " " + regExp1 + ", " + regExp2;
             }
             codeBuffer.emit(DOUBLE_TAB + code);
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 %" + this->reg.getRegName() + ", label @, label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + this->reg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -362,7 +365,6 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         }
 
     }
-    codeBuffer.emit(DOUBLE_TAB + code);
 }
 std::string ExpClass::getType() {return type;}
 std::string ExpClass::getValue() {return value;}
@@ -403,7 +405,7 @@ void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
         std::string phiLabel = codeBuffer.genLabel();
         codeBuffer.bpatch(patchTrue, phiLabel);
         codeBuffer.bpatch(patchFalse, phiLabel);
-        codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+        codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i1 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
         vecArgsType.insert(vecArgsType.begin(), argType);
         vecArgsValue.insert(vecArgsValue.begin(), boolValReg.getRegName());
     }
@@ -418,7 +420,9 @@ StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
         case STATEMENTS_STATEMENT:
         {
             this->nextlist = exp1->getNextlist();
+			//codeBuffer.bpatch(this->nextlist, exp2->getLabel());
             this->breaklist = exp1->getBreaklist();
+			//codeBuffer.bpatch(this->breaklist, exp2->getLabel());
             break;
         }
         case STATEMENTS_STATEMENTS_STATEMENT:
@@ -476,18 +480,19 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 std::string phiLabel = codeBuffer.genLabel();
                 codeBuffer.bpatch(patchTrue, phiLabel);
                 codeBuffer.bpatch(patchFalse, phiLabel);
-                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
                 storeReg = tempReg.getRegName();
-
             }
-            else if (type == "BYTE") {
+            else{
+				if (type == "BYTE") {
                 code = tempReg.getRegName() + " = zext " + getSizeByType(type) + " " + exp2->getRegName() + " to i32";
                 codeBuffer.emit(DOUBLE_TAB + code);
                 storeReg = tempReg.getRegName();
-            }
-            else {
+				}
+				else {//"INT"
                 storeReg = exp2->getRegName();
-            }
+				}
+			}
 
             int idOffset = getOffsetById(exp1->getId());
             std::string idOffsetStr = to_string(idOffset);
@@ -496,7 +501,11 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             codeBuffer.emit(DOUBLE_TAB + code);
             code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
             codeBuffer.emit(DOUBLE_TAB + code);
-
+			
+            /*int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
+            pair<int, BranchLabelIndex> endPair = pair<int, BranchLabelIndex>(bufferLocation, FIRST);
+            vector<pair<int, BranchLabelIndex>> patchEnd = codeBuffer.makelist(endPair);
+			nextlist = codeBuffer.merge(this->nextlist, patchEnd);*/
             break;
         }
         case STATEMENT_AUTO_ID_ASS_EXP:
@@ -520,13 +529,12 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             setIsReturn(true);
             code = "ret void";
             codeBuffer.emit(DOUBLE_TAB + code);
-            codeBuffer.genLabel();
             break;
         }
         case STATEMENT_RET_EXP:
         {
-            //handle boolean return
-            std::string retReg;
+			//handle boolean return
+			std::string retReg;
             Register tempReg;
             std::string funcRetType = getCurrFuncType();
             std::string type = exp1->getType();
@@ -549,7 +557,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 std::string phiLabel = codeBuffer.genLabel();
                 codeBuffer.bpatch(patchTrue, phiLabel);
                 codeBuffer.bpatch(patchFalse, phiLabel);
-                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
                 retReg = tempReg.getRegName();
             }
             else if (type != funcRetType) {
@@ -562,7 +570,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             }
             setIsReturn(true);
             codeBuffer.emit(DOUBLE_TAB + "ret " + getSizeByType(type) + " " + retReg);
-            codeBuffer.genLabel();
             break;
         }
         case STATEMENT_BREAK:
@@ -661,7 +668,7 @@ std::string IfElseClass::getLabel() {return label;}
 CallClass::CallClass(CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) :
 callType(callType), type(type), reg(Register())
 {
-    std::string code;
+	std::string code;
     if (type == "VOID") {
         code = "call " + getSizeByType(type) + " @" + exp1->getId() + "(";
     }

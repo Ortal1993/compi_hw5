@@ -18,11 +18,11 @@ CodeBuffer &CodeBuffer::instance() {
 
 string CodeBuffer::genLabel(){
 	std::stringstream label;
-	label << TAB << "label_";
+	label << "label_";
 	label << buffer.size();
 	std::string ret(label.str());
 	label << ":";
-	emit(label.str());
+	emit(TAB + label.str());
 	return ret;
 }
 
