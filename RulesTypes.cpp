@@ -15,7 +15,7 @@ std::string IDClass::getId() {return id;}
 int IDClass::getQuad() {return quad;}
 
 StringClass::StringClass(std::string value) : strReg(StringRegister()), value(value) {
-     value = value.substr(1, value.size()-2);
+     this->value = value.substr(1, value.size()-2);
 }
 std::string StringClass::getValue() {return value;}
 
@@ -44,13 +44,16 @@ std::string FormalDeclClass::getArgType() {return argType;}
 std::string FormalDeclClass::getArgID() {return argID;}
 
 ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
-                   BaseClass* exp1, BaseClass* exp2, BaseClass* opExp) :
+                   BaseClass* exp1, BaseClass* exp2, BaseClass* opExp, BaseClass* MExp) :
                     opType(opType), type(type), value(value), reg(Register()),
                     truelist(vector<pair<int,BranchLabelIndex>>()),
                     falselist(vector<pair<int,BranchLabelIndex>>())
 {
     std::string code;
-    std::string opStr = opExp->getOpStr();///For relop and binary
+    std::string opStr;
+    if (opExp != nullptr) {
+        opStr = opExp->getOpStr();///For relop and binary
+    }
     switch (opType) {
         case EXP_OP_ID:
         {
@@ -167,14 +170,14 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         }
         case EXP_OP_OR:
         {
-            codeBuffer.bpatch(exp1->getFalselist(), opExp->getLabel());
+            codeBuffer.bpatch(exp1->getFalselist(), MExp->getLabel());
             this->truelist = codeBuffer.merge(exp1->getTruelist(), exp2->getTruelist());
             this->falselist = exp2->getFalselist();
             break;
         }
         case EXP_OP_AND:
         {
-            codeBuffer.bpatch(exp1->getTruelist(), opExp->getLabel());
+            codeBuffer.bpatch(exp1->getTruelist(), MExp->getLabel());
             this->truelist = exp2->getTruelist();
             this->falselist = codeBuffer.merge(exp1->getFalselist(), exp2->getFalselist());
             break;
@@ -369,7 +372,10 @@ vector<pair<int,BranchLabelIndex>> ExpClass::getTruelist() {return truelist;}
 vector<pair<int,BranchLabelIndex>> ExpClass::getFalselist(){ return falselist;}
 
 ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsValue) :
-                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue) {}
+                            vecArgsType(vecArgsType), vecArgsValue(vecArgsValue)
+{
+    //for every boolean we add - use phi
+}
 std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
 void ExpListClass::addNewArgType(std::string argType, std::string argValue) {
@@ -607,11 +613,12 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
 
 }
 vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist() {return nextlist;}
+vector<pair<int,BranchLabelIndex>> StatementClass::getBreaklist() {return breaklist;}
 
 
-IfElseClass::IfElseClass(ELSE_TYPE elseType, std::string label,
+IfElseClass::IfElseClass(ELSE_TYPE elseType,
                BaseClass* exp1, BaseClass* exp2, BaseClass* exp3) :
-               elseType(elseType), label(label),
+               elseType(elseType),
                nextlist(vector<pair<int,BranchLabelIndex>>()),
                breaklist(vector<pair<int,BranchLabelIndex>>()) {
     if(exp1 != nullptr && exp2 != nullptr && exp3 != nullptr){
@@ -660,7 +667,29 @@ callType(callType), type(type), reg(Register())
             }
             for (int i=0; i < typesGiven.size() ; i++) {
                 std::string argType = getSizeByType(typesGiven[i]);
-                if (argType != vecFuncTypes[i]) {
+                if (argType == "BOOL") {
+                    Register boolValReg;
+                    std::string ifTrueLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
+                    int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                    pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
+                    vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
+
+                    //create false label
+                    std::string ifFalseLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
+                    int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+                    pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
+                    vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
+
+                    //create phi calculation
+                    std::string phiLabel = codeBuffer.genLabel();
+                    codeBuffer.bpatch(patchTrue, phiLabel);
+                    codeBuffer.bpatch(patchFalse, phiLabel);
+                    codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i32 [1, " + ifTrueLabel + "], [0, " + ifFalseLabel + "]");
+                    code += argType + " " + boolValReg.getRegName() + ", " ;
+                }
+                else if (argType != vecFuncTypes[i]) {
                     Register tempReg;
                     codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = zext i8 " + valuesGiven[i] + " to i32"); //cast from byte to int
                     code += argType + " " + tempReg.getRegName() + ", " ;
@@ -693,4 +722,8 @@ N_Class::N_Class(){
     int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
     pair<int,BranchLabelIndex> item = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
     nextlist = codeBuffer.makelist(item);
+}
+
+vector<pair<int,BranchLabelIndex>> N_Class::getNextlist() {
+    return this->nextlist;
 }

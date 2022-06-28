@@ -9,8 +9,9 @@
 
 const std::string DOUBLE_TAB = "\t\t";
 
-CodeBuffer& codeBuffer = CodeBuffer::instance();
-StackScopeRegister stackRegister;
+//CodeBuffer& codeBuffer = CodeBuffer::instance();
+extern CodeBuffer& codeBuffer;
+extern StackScopeRegister stackRegister;
 
 void checkIfBValid(std::string value);
 void checkIfBool(std::string type);
@@ -21,7 +22,7 @@ void checkIfBreakValid();
 void checkIfContinueValid();
 std::string setRetBinopType(std::string typeLeft, std::string typeRight);
 std::string getTypeById(std::string id);
-void addVarNewEntry(std::string id, std::string type, std::string value = std::string());
+void addVarNewEntry(std::string id, std::string type);
 void addFuncNewEntry(std::string id, std::string type, std::vector<std::string> vecArgsType = std::vector<std::string>());
 void addFuncArgsToTable(std::vector<std::string> vecArgsType, std::vector<std::string> vecArgsId);
 void checkValidArgs(std::vector<std::string>& vecArgsId);
@@ -43,7 +44,7 @@ void HandleReturn(std::string retType);
 void allocateFuncStack();
 void declarePrintFunctions();
 void addDivisionByZeroError();
-void defineFuncDecl();
+void defineFuncDecl(std::string retType, std::string id, std::vector<std::string> vecArgsType);
 void printBuffer();
 std::string getCurrFuncType();
 #endif //_UTILITIES_

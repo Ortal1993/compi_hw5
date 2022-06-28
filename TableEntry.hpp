@@ -19,7 +19,6 @@ public:
     int getOffset();
     std::string& getType();
 	std::string setType(std::string newType);
-    std::string getValue();
     bool getIsFunc();
     std::vector<std::string> getVecArgsTypes();
 };

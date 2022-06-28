@@ -23,7 +23,7 @@ private:
     static std::string regName;
 public:
     StackScopeRegister();
-    ~Register() = default;
+    ~StackScopeRegister() = default;
     void incCounter();
     std::string getRegName();
     void setNewRegName(); //every time we allocate a new stack, we receive new address for it, and need to save it in new reg name.
