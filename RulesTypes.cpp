@@ -625,7 +625,8 @@ vector<pair<int,BranchLabelIndex>> IfElseClass::getNextlist() {return nextlist;}
 vector<pair<int,BranchLabelIndex>> IfElseClass::getBreaklist() {return breaklist;}
 std::string IfElseClass::getLabel() {return label;}
 
-CallClass::CallClass( CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) : callType(callType), type(type), reg(Register())
+CallClass::CallClass(CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) :
+callType(callType), type(type), reg(Register())
 {
     std::string code;
     switch (callType) {
