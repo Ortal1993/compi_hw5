@@ -80,6 +80,7 @@ public:
     virtual vector<pair<int,BranchLabelIndex>> getFalselist() {std::cout << "error with getFalselist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getNextlist() {std::cout << "error with getNextlist()!" << std::endl;}
     virtual vector<pair<int,BranchLabelIndex>> getBreaklist() {std::cout << "error with getBreaklist()!" << std::endl;}
+    virtual vector<pair<int,BranchLabelIndex>> getContinuelist() {std::cout << "error with getContinuelist()!" << std::endl;}
 };
 
 class RetTypeClass : public BaseClass {
@@ -201,15 +202,15 @@ public:
 class StatementsClass : public BaseClass {
 private:
     STATEMENTS_TYPE stsType;
-    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
     vector<pair<int,BranchLabelIndex>> breaklist;
+    vector<pair<int,BranchLabelIndex>> continuelist;
 public:
     StatementsClass(STATEMENTS_TYPE stsType,
-                    BaseClass* exp1 = nullptr, 
+                    BaseClass* exp1 = nullptr,
 					BaseClass* exp2 = nullptr);
     ~StatementsClass() = default;
-    vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+    vector<pair<int,BranchLabelIndex>> getContinuelist() override;
 };
 
 class StatementClass : public BaseClass {
@@ -217,6 +218,7 @@ private:
     STATEMENT_TYPE stType;
     vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
     vector<pair<int,BranchLabelIndex>> breaklist;
+    vector<pair<int,BranchLabelIndex>> continuelist;
 public:
     StatementClass(STATEMENT_TYPE stType,
                    BaseClass* exp1 = nullptr, BaseClass* exp2 = nullptr,
@@ -225,6 +227,7 @@ public:
     ~StatementClass() = default;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+    vector<pair<int,BranchLabelIndex>> getContinuelist() override;
 };
 
 class IfElseClass : public BaseClass {
@@ -233,6 +236,7 @@ private:
     std::string label;
     vector<pair<int,BranchLabelIndex>> nextlist;
     vector<pair<int,BranchLabelIndex>> breaklist;
+    vector<pair<int,BranchLabelIndex>> continuelist;
 public:
     IfElseClass(ELSE_TYPE elseType = ELSE_UNUSED,
     BaseClass* exp1 = nullptr,
@@ -242,6 +246,7 @@ public:
     ELSE_TYPE getElseType() override;
     vector<pair<int,BranchLabelIndex>> getNextlist() override;
     vector<pair<int,BranchLabelIndex>> getBreaklist() override;
+    vector<pair<int,BranchLabelIndex>> getContinuelist() override;
     std::string getLabel() override;
 };
 

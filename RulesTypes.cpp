@@ -413,12 +413,12 @@ void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
 StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
                                  BaseClass* exp1, BaseClass* exp2) :
                                  stsType(stsType),
-                                 nextlist(vector<pair<int,BranchLabelIndex>>()),
-                                 breaklist(vector<pair<int,BranchLabelIndex>>()) {
+                                 breaklist(vector<pair<int,BranchLabelIndex>>()),
+                                 continuelist(vector<pair<int,BranchLabelIndex>>()) {
     switch (stsType) {
         case STATEMENTS_STATEMENT:
         {
-            this->nextlist = exp1->getNextlist();
+            this->continuelist = exp1->getContinuelist();
 			//codeBuffer.bpatch(this->nextlist, exp2->getLabel());
             this->breaklist = exp1->getBreaklist();
 			//codeBuffer.bpatch(this->breaklist, exp2->getLabel());
@@ -426,21 +426,23 @@ StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
         }
         case STATEMENTS_STATEMENTS_STATEMENT:
         {
-            this->nextlist = codeBuffer.merge(exp1->getNextlist(), exp2->getNextlist());
+            this->continuelist = codeBuffer.merge(exp1->getContinuelist(), exp2->getContinuelist());
             this->breaklist = codeBuffer.merge(exp1->getBreaklist(), exp2->getBreaklist());
             break;
         }
     }
 }
-vector<pair<int,BranchLabelIndex>> StatementsClass::getNextlist() {return nextlist;}
+
 vector<pair<int,BranchLabelIndex>> StatementsClass::getBreaklist(){ return breaklist;}
+vector<pair<int,BranchLabelIndex>> StatementsClass::getContinuelist() { return continuelist;}
 
 StatementClass::StatementClass(STATEMENT_TYPE stType,
                                BaseClass* exp1, BaseClass* exp2,
                                BaseClass* exp3, BaseClass* exp4, BaseClass* exp5) :
                                 stType(stType),
                                 nextlist(vector<pair<int,BranchLabelIndex>>()),
-                                breaklist(vector<pair<int,BranchLabelIndex>>())
+                                breaklist(vector<pair<int,BranchLabelIndex>>()),
+                                continuelist(vector<pair<int,BranchLabelIndex>>())
 {
     std::string code;
     switch (stType) {
@@ -574,16 +576,17 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         case STATEMENT_BREAK:
         {
             int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
+            codeBuffer.genLabel();
             pair<int,BranchLabelIndex> ifBreak = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->breaklist = codeBuffer.makelist(ifBreak);
             break;
         }
         case STATEMENT_CONTINUE:
         {
-            code = "br label @";
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
+            codeBuffer.genLabel();
             pair<int,BranchLabelIndex> ifContinue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
-            this->nextlist = codeBuffer.makelist(ifContinue);
+            this->continuelist = codeBuffer.makelist(ifContinue);
             break;
         }
         case STATEMENT_IF:
@@ -598,6 +601,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 nextlist = codeBuffer.merge(this->nextlist, codeBuffer.makelist(endBlockPair));
                 std::string endOfBlock = codeBuffer.genLabel();
                 codeBuffer.bpatch(this->nextlist, endOfBlock);
+                continuelist = exp3->getContinuelist();
                 breaklist = exp3->getBreaklist(); //in case of: while < if < while
 
             } else {
@@ -610,6 +614,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 nextlist = codeBuffer.merge(nextlist, codeBuffer.makelist(endBlockPair));
                 std::string endOfBlock = codeBuffer.genLabel();
                 codeBuffer.bpatch(this->nextlist, endOfBlock);
+                continuelist = codeBuffer.merge(exp3->getContinuelist(), exp4->getContinuelist());
                 breaklist = codeBuffer.merge(exp3->getBreaklist(), exp4->getBreaklist());
             }
             break;
@@ -622,20 +627,20 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         case STATEMENT_WHILE:
         {
             codeBuffer.bpatch(exp1->getNextlist(),exp2->getLabel());
-			codeBuffer.bpatch(exp5->getNextlist(),exp2->getLabel());
+			//codeBuffer.bpatch(exp5->getNextlist(),exp2->getLabel()); //next list of if is handled already
             codeBuffer.bpatch(exp3->getTruelist(), exp4->getLabel());
             nextlist = exp3->getFalselist();
-            code = "br label %" + exp2->getLabel();
-			codeBuffer.emit(DOUBLE_TAB + code);
+            codeBuffer.emit(DOUBLE_TAB + "br label %" + exp2->getLabel());
             std::string finalLabel = codeBuffer.genLabel();
             codeBuffer.bpatch(nextlist, finalLabel);
             codeBuffer.bpatch(exp5->getBreaklist(), finalLabel);
+            codeBuffer.bpatch(exp5->getContinuelist(), exp2->getLabel());
             break;
         }
         case STATEMENT_L_STATEMENTS_R:
         {
-            this->nextlist = exp1->getNextlist();
             this->breaklist = exp1->getBreaklist();
+            this->continuelist = exp1->getContinuelist();
             break;
         }
         default:
@@ -647,6 +652,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
 }
 vector<pair<int,BranchLabelIndex>> StatementClass::getNextlist() {return nextlist;}
 vector<pair<int,BranchLabelIndex>> StatementClass::getBreaklist() {return breaklist;}
+vector<pair<int,BranchLabelIndex>> StatementClass::getContinuelist() {return continuelist;}
 
 
 IfElseClass::IfElseClass(ELSE_TYPE elseType,
@@ -663,6 +669,7 @@ IfElseClass::IfElseClass(ELSE_TYPE elseType,
 ELSE_TYPE IfElseClass::getElseType() {return elseType;}
 vector<pair<int,BranchLabelIndex>> IfElseClass::getNextlist() {return nextlist;}
 vector<pair<int,BranchLabelIndex>> IfElseClass::getBreaklist() {return breaklist;}
+vector<pair<int,BranchLabelIndex>> IfElseClass::getContinuelist() {return continuelist;}
 std::string IfElseClass::getLabel() {return label;}
 
 CallClass::CallClass(CALL_TYPE callType, std::string type, BaseClass* exp1, BaseClass* exp2) :
