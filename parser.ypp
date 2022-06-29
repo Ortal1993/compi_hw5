@@ -82,7 +82,7 @@ Statements:  Statement             {$$ = new StatementsClass(STATEMENTS_STATEMEN
 ;
 
 Statement:	Type ID SC              {addVarNewEntry($2->getId(), $1->getType());
-                                    $$ = new StatementClass(STATEMENT_ID, $1);}
+                                    $$ = new StatementClass(STATEMENT_ID, $2);}
 			|Type ID ASSIGN Exp SC  {checkIfAssignValidByType($1->getType(), $4->getType());
 			                        addVarNewEntry($2->getId(), $1->getType());
 			                        $$ = new StatementClass(STATEMENT_TYPE_ID_ASS_EXP, $2, $4);}
@@ -123,12 +123,12 @@ IfElse:     /*epsilon*/ %prec ASSIGN {$$ = new IfElseClass(ELSE_UNUSED);}
 Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->getId(), $3->getVecArgsType());
                                       $$ = new CallClass(CALL_ID_EXPLIST, funcRetType, $1, $3); }
 			|ID LPAREN RPAREN         {std::string funcRetType = checkFuncCall($1->getId());
-			                          $$ = new CallClass(CALL_ID, funcRetType); }
+			                          $$ = new CallClass(CALL_ID, funcRetType, $1); }
 ;
 
 ExpList:	Exp                     {$$ = new ExpListClass();
                                     $$->addNewArgToExpList($1->getType(), $1);}
-			|Exp COMMA ExpList      {$$ = new ExpListClass($3->getVecArgsType());
+			|Exp COMMA ExpList      {$$ = new ExpListClass($3->getVecArgsType(), $3->getVecArgsValue());
 			                        $$->addNewArgToExpList($1->getType(), $1);}
 ;
 

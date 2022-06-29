@@ -305,12 +305,12 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
             }
             if (opStr == "*") {
                 //$t3 = add $t2, $t3
-                code = this->reg.getRegName() + " = mul " + getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
+                code = this->reg.getRegName() + " = mul " + getSizeByType(type) + " " + regExp1 + ", " + regExp2;
             }
             else { //division
                 //check if dividing by 0:
                 Register ifzeroReg;
-                codeBuffer.emit(DOUBLE_TAB + ifzeroReg.getRegName() + " = icmp eq " + getSizeByType(type) +  " " + exp2->getRegName() + ", 0");
+                codeBuffer.emit(DOUBLE_TAB + ifzeroReg.getRegName() + " = icmp eq " + getSizeByType(type) +  " " + regExp2 + ", 0");
                 int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + ifzeroReg.getRegName() + ", label @, label @");
 
                 std::string ifZeroLabel = codeBuffer.genLabel();
@@ -321,7 +321,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 int finishedDivErr = codeBuffer.emit(DOUBLE_TAB + "br label @");
 
                 std::string isDivLabel = codeBuffer.genLabel();
-                code = this->reg.getRegName() + " = " + signedChar + "div "+ getSizeByType(type) + " " + exp1->getRegName() + ", " + exp2->getRegName();
+                code = this->reg.getRegName() + " = " + signedChar + "div "+ getSizeByType(type) + " " + regExp1 + ", " + regExp2;
 
                 pair<int,BranchLabelIndex> ifZeroItem =  pair<int,BranchLabelIndex>(bufferLocation, FIRST);
                 vector<pair<int,BranchLabelIndex>> zeroItemList = codeBuffer.makelist(ifZeroItem);
@@ -380,15 +380,8 @@ std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
 void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
     if(argType == "BOOL"){
-
-    }else{
-        vecArgsType.insert(vecArgsType.begin(), argType);
-        vecArgsValue.insert(vecArgsValue.begin(), exp1->getRegName());
-    }
-
-    std::string code;
-    if (argType == "BOOL") {
-        Register boolValReg; //because bool value isn't stored in a register we create a new register in order to pass the value
+		std::string code;
+		Register boolValReg; //because bool value isn't stored in a register we create a new register in order to pass the value
         //create true label
         std::string ifTrueLabel = codeBuffer.genLabel();
         codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
@@ -410,6 +403,9 @@ void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
         codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i1 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
         vecArgsType.insert(vecArgsType.begin(), argType);
         vecArgsValue.insert(vecArgsValue.begin(), boolValReg.getRegName());
+    }else{
+        vecArgsType.insert(vecArgsType.begin(), argType);
+        vecArgsValue.insert(vecArgsValue.begin(), exp1->getRegName());
     }
 }
 
@@ -559,7 +555,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 std::string phiLabel = codeBuffer.genLabel();
                 codeBuffer.bpatch(patchTrue, phiLabel);
                 codeBuffer.bpatch(patchFalse, phiLabel);
-                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
+                codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i1 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
                 retReg = tempReg.getRegName();
             }
             else if (type != funcRetType) {
