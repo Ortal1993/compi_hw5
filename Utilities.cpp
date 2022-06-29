@@ -9,7 +9,6 @@ CodeBuffer& codeBuffer = CodeBuffer::instance();
 StackScopeRegister stackRegister;
 
 int WhileCounter = 0;
-bool isReturn = false;
 static TableEntry& getCurrFunc();
 
 
@@ -178,8 +177,6 @@ void openScope() {
 }
 
 void closeScope() {
-  //output::endScope();
-  //printScope();
   symbolTable.popScope();
   offset.popOffsetScope();
 }
@@ -266,7 +263,7 @@ int getOffsetById(std::string id){
     if (entry == nullptr) {
         output::errorUndef(yylineno, id);
         exit(0);
-    }//do we need to check if not null?
+    }
     return entry->getOffset();
 }
 
@@ -280,16 +277,7 @@ std::vector<std::string> getFuncVecTypes(std::string funcId) {
     return vecFuncTypes;
 }
 
-void setIsReturn(bool status) {
-    isReturn = status;
-}
-
 void HandleReturn(std::string retType) {
-    /*if (isReturn == true) {
-        codeBuffer.emit("}");
-        return;
-    }*/
-
     if (retType == "VOID") {
         codeBuffer.emit(DOUBLE_TAB + "ret void");
     }

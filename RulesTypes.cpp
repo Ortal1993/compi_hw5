@@ -117,7 +117,6 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 this->falselist = codeBuffer.makelist(ifFalse);
             }
             else {
-				//std::cout<< "in exp call in else" << std::endl;
                 //example: exp_reg = add call_reg, 0;
                 code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
                 codeBuffer.emit(DOUBLE_TAB + code);
@@ -394,9 +393,7 @@ StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
         case STATEMENTS_STATEMENT:
         {
             this->continuelist = exp1->getContinuelist();
-			//codeBuffer.bpatch(this->nextlist, exp2->getLabel());
             this->breaklist = exp1->getBreaklist();
-			//codeBuffer.bpatch(this->breaklist, exp2->getLabel());
             break;
         }
         case STATEMENTS_STATEMENTS_STATEMENT:
@@ -434,7 +431,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_TYPE_ID_ASS_EXP:
         {
-            std::string RegWithVal = exp2->getRegName(); //used if arg
             std::string storeReg; //used if regular variable
             Register tempReg;
             std::string type = exp2->getType();
@@ -458,7 +454,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 codeBuffer.bpatch(patchTrue, phiLabel);
                 codeBuffer.bpatch(patchFalse, phiLabel);
                 codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
-                RegWithVal = tempReg.getRegName();
                 storeReg = tempReg.getRegName();
             }
             else{
@@ -473,26 +468,12 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
 			}
 
             int idOffset = getOffsetById(exp1->getId());
+            std::string idOffsetStr = to_string(idOffset);
             Register addrToStoreReg;
-            if(idOffset < 0){
-                //argument case
-                //exp_reg = add %(the offset of argument * -1 (-1)), 0;
-                int argRegNum = (idOffset*(-1)) - 1;
-                std::string argRegName = "%" + std::to_string(argRegNum);
-                codeBuffer.emit(DOUBLE_TAB + argRegName + " = add " + getSizeByType(type) + " " + RegWithVal + ", 0");
-            }
-            else {
-                std::string idOffsetStr = to_string(idOffset);
-                code = addrToStoreReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-                codeBuffer.emit(DOUBLE_TAB + code);
-                code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
-                codeBuffer.emit(DOUBLE_TAB + code);
-            }
-
-            /*int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
-            pair<int, BranchLabelIndex> endPair = pair<int, BranchLabelIndex>(bufferLocation, FIRST);
-            vector<pair<int, BranchLabelIndex>> patchEnd = codeBuffer.makelist(endPair);
-			nextlist = codeBuffer.merge(this->nextlist, patchEnd);*/
+            code = addrToStoreReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+            codeBuffer.emit(DOUBLE_TAB + code);
+            code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
+            codeBuffer.emit(DOUBLE_TAB + code);
             break;
         }
         case STATEMENT_AUTO_ID_ASS_EXP:
@@ -513,7 +494,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_RET:
         {
-            setIsReturn(true);
             code = "ret void";
             codeBuffer.emit(DOUBLE_TAB + code);
             break;
@@ -555,7 +535,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             else {
                 retReg = exp1->getRegName();
             }
-            setIsReturn(true);
             codeBuffer.emit(DOUBLE_TAB + "ret " + getSizeByType(type) + " " + retReg);
             break;
         }
@@ -613,7 +592,6 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         case STATEMENT_WHILE:
         {
             codeBuffer.bpatch(exp1->getNextlist(),exp2->getLabel());
-			//codeBuffer.bpatch(exp5->getNextlist(),exp2->getLabel()); //next list of if is handled already
             codeBuffer.bpatch(exp3->getTruelist(), exp4->getLabel());
             nextlist = exp3->getFalselist();
             codeBuffer.emit(DOUBLE_TAB + "br label %" + exp2->getLabel());

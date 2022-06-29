@@ -216,7 +216,7 @@ public:
 class StatementClass : public BaseClass {
 private:
     STATEMENT_TYPE stType;
-    vector<pair<int,BranchLabelIndex>> nextlist; //also continue cases
+    vector<pair<int,BranchLabelIndex>> nextlist;
     vector<pair<int,BranchLabelIndex>> breaklist;
     vector<pair<int,BranchLabelIndex>> continuelist;
 public:

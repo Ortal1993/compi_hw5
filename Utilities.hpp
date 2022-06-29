@@ -10,7 +10,6 @@
 
 const std::string DOUBLE_TAB = "\t\t";
 
-//CodeBuffer& codeBuffer = CodeBuffer::instance();
 extern CodeBuffer& codeBuffer;
 extern StackScopeRegister stackRegister;
 
@@ -40,7 +39,6 @@ void printScope();
 std::string getSizeByType(std::string type);
 int getOffsetById(std::string id);
 std::vector<std::string> getFuncVecTypes(std::string funcId);
-void setIsReturn(bool status);
 void HandleReturn(std::string retType);
 void allocateFuncStack();
 void declarePrintFunctions();

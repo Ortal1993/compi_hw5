@@ -54,7 +54,6 @@ FuncDecl:   RetType ID LPAREN Formals RPAREN  {addFuncNewEntry($2->getId(),$1->g
                                                defineFuncDecl($1->getType(), $2->getId(), $4->getVecArgsType());
                                                allocateFuncStack();}
             LBRACE                            {openScope();
-                                               setIsReturn(false);
                                                addFuncArgsToTable($4->getVecArgsType(),$4->getVecArgsID());} /*add func args as neg entries*/
             Statements RBRACE                 {HandleReturn($1->getType());
                                                closeScope();}
