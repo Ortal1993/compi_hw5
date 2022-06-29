@@ -360,6 +360,7 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
         {
             if (type != "BOOL") {
                 code = reg.getRegName() + " = add " + getSizeByType(type) + " " + exp1->getRegName() + ", 0";
+                codeBuffer.emit(DOUBLE_TAB + code);
             }
             this->truelist = exp1->getTruelist();
             this->falselist = exp1->getFalselist();
@@ -499,7 +500,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
             codeBuffer.emit(DOUBLE_TAB + code);
             code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
             codeBuffer.emit(DOUBLE_TAB + code);
-			
+
             /*int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
             pair<int, BranchLabelIndex> endPair = pair<int, BranchLabelIndex>(bufferLocation, FIRST);
             vector<pair<int, BranchLabelIndex>> patchEnd = codeBuffer.makelist(endPair);
@@ -572,8 +573,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_BREAK:
         {
-            code = "br label @";
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + code);
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
             pair<int,BranchLabelIndex> ifBreak = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             this->breaklist = codeBuffer.makelist(ifBreak);
             break;
