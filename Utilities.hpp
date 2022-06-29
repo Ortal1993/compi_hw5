@@ -4,6 +4,7 @@
 #include "SymbolTable.hpp"
 #include "bp.hpp"
 #include "Register.hpp"
+#include "RulesTypes.hpp"
 #include <iostream>
 
 
@@ -47,4 +48,5 @@ void addDivisionByZeroError();
 void defineFuncDecl(std::string retType, std::string id, std::vector<std::string> vecArgsType);
 void printBuffer();
 std::string getCurrFuncType();
+void setValToExpReg(BaseClass* exp);
 #endif //_UTILITIES_

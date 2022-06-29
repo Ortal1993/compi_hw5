@@ -126,10 +126,10 @@ Call:		ID LPAREN ExpList RPAREN  {std::string funcRetType = checkFuncCall($1->ge
 			                          $$ = new CallClass(CALL_ID, funcRetType, $1); }
 ;
 
-ExpList:	Exp                     {$$ = new ExpListClass();
-                                    $$->addNewArgToExpList($1->getType(), $1);}
-			|Exp COMMA ExpList      {$$ = new ExpListClass($3->getVecArgsType(), $3->getVecArgsValue());
-			                        $$->addNewArgToExpList($1->getType(), $1);}
+ExpList:	Exp  {setValToExpReg($1);}                  {$$ = new ExpListClass();
+                                                       $$->addNewArgToExpList($1->getType(), $1);}
+			|Exp {setValToExpReg($1);} COMMA ExpList    {$$ = new ExpListClass($4->getVecArgsType(), $4->getVecArgsValue());
+			                                           $$->addNewArgToExpList($1->getType(), $1);}
 ;
 
 Type:	    INT                     {$$ = new TypeClass("INT");}

@@ -199,13 +199,14 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                 codeBuffer.emit(DOUBLE_TAB + code);
 				typeToCompare = "i32";
             }
+            Register compareReg;
             if (opStr == "==") {//can't be bool
-                code = this->reg.getRegName() + " = icmp eq " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp eq " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else { //"!="
-                code = this->reg.getRegName() + " = icmp ne " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp ne " + typeToCompare + " " + regExp1 + ", " + regExp2;
             }
             codeBuffer.emit(DOUBLE_TAB + code);
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + this->reg.getRegName() + ", label @, label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + compareReg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -235,18 +236,18 @@ ExpClass::ExpClass(OP_TYPE opType, std::string type, std::string value,
                     signedChar = "u";
                 }
             }
-
+            Register compareReg;
             if (opStr == "<") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "lt " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp " + signedChar + "lt " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else if (opStr == ">") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "gt " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp " + signedChar + "gt " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else if (opStr == "<=") {
-                code = this->reg.getRegName() + " = icmp " + signedChar + "le " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp " + signedChar + "le " + typeToCompare + " " + regExp1 + ", " + regExp2;
             } else { //">="
-                code = this->reg.getRegName() + " = icmp " + signedChar + "ge " + typeToCompare + " " + regExp1 + ", " + regExp2;
+                code = compareReg.getRegName() + " = icmp " + signedChar + "ge " + typeToCompare + " " + regExp1 + ", " + regExp2;
             }
             codeBuffer.emit(DOUBLE_TAB + code);
-            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + this->reg.getRegName() + ", label @, label @");
+            int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br i1 " + compareReg.getRegName() + ", label @, label @");
             pair<int,BranchLabelIndex> ifTrue = pair<int,BranchLabelIndex>(bufferLocation, FIRST);
             pair<int,BranchLabelIndex> ifFalse = pair<int,BranchLabelIndex>(bufferLocation, SECOND);
             this->truelist = codeBuffer.makelist(ifTrue);
@@ -380,34 +381,8 @@ ExpListClass::ExpListClass(std::vector<std::string> vecArgsType, std::vector<std
 std::vector<std::string> ExpListClass::getVecArgsType() {return vecArgsType;}
 std::vector<std::string> ExpListClass::getVecArgsValue() {return vecArgsValue;}
 void ExpListClass::addNewArgToExpList(std::string argType, BaseClass *exp1) {
-    if(argType == "BOOL"){
-		std::string code;
-		Register boolValReg; //because bool value isn't stored in a register we create a new register in order to pass the value
-        //create true label
-        std::string ifTrueLabel = codeBuffer.genLabel();
-        codeBuffer.bpatch(exp1->getTruelist(), ifTrueLabel);
-        int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
-        pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
-        vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
-
-        //create false label
-        std::string ifFalseLabel = codeBuffer.genLabel();
-        codeBuffer.bpatch(exp1->getFalselist(), ifFalseLabel);
-        int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
-        pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
-        vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
-
-        //create phi calculation
-        std::string phiLabel = codeBuffer.genLabel();
-        codeBuffer.bpatch(patchTrue, phiLabel);
-        codeBuffer.bpatch(patchFalse, phiLabel);
-        codeBuffer.emit(DOUBLE_TAB + boolValReg.getRegName() + " = phi i1 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
-        vecArgsType.insert(vecArgsType.begin(), argType);
-        vecArgsValue.insert(vecArgsValue.begin(), boolValReg.getRegName());
-    }else{
-        vecArgsType.insert(vecArgsType.begin(), argType);
-        vecArgsValue.insert(vecArgsValue.begin(), exp1->getRegName());
-    }
+    vecArgsType.insert(vecArgsType.begin(), argType);
+    vecArgsValue.insert(vecArgsValue.begin(), exp1->getRegName());
 }
 
 StatementsClass::StatementsClass(STATEMENTS_TYPE stsType,
@@ -459,7 +434,8 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
         }
         case STATEMENT_TYPE_ID_ASS_EXP:
         {
-            std::string storeReg;
+            std::string RegWithVal = exp2->getRegName(); //used if arg
+            std::string storeReg; //used if regular variable
             Register tempReg;
             std::string type = exp2->getType();
             if(type == "BOOL") {
@@ -482,6 +458,7 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
                 codeBuffer.bpatch(patchTrue, phiLabel);
                 codeBuffer.bpatch(patchFalse, phiLabel);
                 codeBuffer.emit(DOUBLE_TAB + tempReg.getRegName() + " = phi i32 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
+                RegWithVal = tempReg.getRegName();
                 storeReg = tempReg.getRegName();
             }
             else{
@@ -496,12 +473,21 @@ StatementClass::StatementClass(STATEMENT_TYPE stType,
 			}
 
             int idOffset = getOffsetById(exp1->getId());
-            std::string idOffsetStr = to_string(idOffset);
             Register addrToStoreReg;
-            code = addrToStoreReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
-            codeBuffer.emit(DOUBLE_TAB + code);
-            code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
-            codeBuffer.emit(DOUBLE_TAB + code);
+            if(idOffset < 0){
+                //argument case
+                //exp_reg = add %(the offset of argument * -1 (-1)), 0;
+                int argRegNum = (idOffset*(-1)) - 1;
+                std::string argRegName = "%" + std::to_string(argRegNum);
+                codeBuffer.emit(DOUBLE_TAB + argRegName + " = add " + getSizeByType(type) + " " + RegWithVal + ", 0");
+            }
+            else {
+                std::string idOffsetStr = to_string(idOffset);
+                code = addrToStoreReg.getRegName() + " = getelementptr [50 x i32], [50 x i32]* " + stackRegister.getRegName() + ", i32 0, i32 " + idOffsetStr;
+                codeBuffer.emit(DOUBLE_TAB + code);
+                code = "store i32 " + storeReg + ", i32* " + addrToStoreReg.getRegName();
+                codeBuffer.emit(DOUBLE_TAB + code);
+            }
 
             /*int bufferLocation = codeBuffer.emit(DOUBLE_TAB + "br label @");
             pair<int, BranchLabelIndex> endPair = pair<int, BranchLabelIndex>(bufferLocation, FIRST);

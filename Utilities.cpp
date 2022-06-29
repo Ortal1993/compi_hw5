@@ -285,10 +285,10 @@ void setIsReturn(bool status) {
 }
 
 void HandleReturn(std::string retType) {
-    if (isReturn == true) {
+    /*if (isReturn == true) {
         codeBuffer.emit("}");
         return;
-    }
+    }*/
 
     if (retType == "VOID") {
         codeBuffer.emit(DOUBLE_TAB + "ret void");
@@ -354,4 +354,29 @@ void printBuffer(){
 
 std::string getCurrFuncType() {
     return getCurrFunc().getType();
+}
+
+void setValToExpReg(BaseClass* exp) {
+    if(exp->getType() == "BOOL"){
+		std::string code;
+        //create true label
+        std::string ifTrueLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(exp->getTruelist(), ifTrueLabel);
+        int bufferLocationTrue = codeBuffer.emit(DOUBLE_TAB + "br label @");
+        pair<int, BranchLabelIndex> isTrue = pair<int, BranchLabelIndex>(bufferLocationTrue, FIRST);
+        vector<pair<int, BranchLabelIndex>> patchTrue = codeBuffer.makelist(isTrue);
+
+        //create false label
+        std::string ifFalseLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(exp->getFalselist(), ifFalseLabel);
+        int bufferLocationFalse = codeBuffer.emit(DOUBLE_TAB + "br label @");
+        pair<int, BranchLabelIndex> isFalse = pair<int, BranchLabelIndex>(bufferLocationFalse, FIRST);
+        vector<pair<int, BranchLabelIndex>> patchFalse = codeBuffer.makelist(isFalse);
+
+        //create phi calculation
+        std::string phiLabel = codeBuffer.genLabel();
+        codeBuffer.bpatch(patchTrue, phiLabel);
+        codeBuffer.bpatch(patchFalse, phiLabel);
+        codeBuffer.emit(DOUBLE_TAB + exp->getRegName() + " = phi i1 [1, %" + ifTrueLabel + "], [0, %" + ifFalseLabel + "]");
+    }
 }
